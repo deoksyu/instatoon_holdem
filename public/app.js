@@ -205,13 +205,13 @@ function render(msg) {
     enterTableScreen();
   }
   document.getElementById("room-code-label").textContent = msg.roomCode;
+  const { state } = msg;
   document.getElementById("player-count-label").textContent =
     `(인원 ${state.players.length}/${msg.maxPlayers || 10})`;
   const fanLink = `${location.origin}/fan.html?room=${msg.roomCode}`;
   const fanLinkEl = document.getElementById("fan-link");
   fanLinkEl.textContent = fanLink;
   fanLinkEl.href = fanLink;
-  const { state } = msg;
 
   // community cards
   const commEl = document.getElementById("community-cards");
