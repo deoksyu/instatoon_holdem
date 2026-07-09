@@ -241,15 +241,15 @@ function render(msg) {
 }
 
 function renderPendingPanel(msg) {
-  const panel = document.getElementById("pending-panel");
+  const overlay = document.getElementById("pending-modal-overlay");
   const list = document.getElementById("pending-list");
   const reqs = msg.pendingRequests || [];
   if (!msg.isHost || reqs.length === 0) {
-    panel.classList.add("hidden");
+    overlay.classList.add("hidden");
     list.innerHTML = "";
     return;
   }
-  panel.classList.remove("hidden");
+  overlay.classList.remove("hidden");
   list.innerHTML = "";
   for (const r of reqs) {
     const item = document.createElement("div");

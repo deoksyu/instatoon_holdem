@@ -184,11 +184,17 @@ input:focus { outline: 2px solid #ffcc4d; }
 .fan-go-btn { background: #33324a; color: #d8b4ff; }
 .fan-go-btn:hover { background: #3d3c58; }
 
-.pending-panel {
-  margin: 10px 18px 0; padding: 10px 14px; background: #241f14; border: 1px solid #6b5420;
-  border-radius: 10px;
+.pending-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
 }
-.pending-title { font-size: 12px; color: #ffcc4d; font-weight: 700; margin-bottom: 8px; }
+.pending-modal {
+  background: #241f14; border: 1px solid #6b5420; border-radius: 14px;
+  padding: 18px; width: 100%; max-width: 420px; max-height: 80vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.pending-title { font-size: 15px; color: #ffcc4d; font-weight: 800; margin-bottom: 12px; }
 .pending-list { display: flex; flex-direction: column; gap: 8px; }
 .pending-item {
   display: flex; align-items: center; gap: 10px; background: #1e2029; border-radius: 8px; padding: 8px 10px;
