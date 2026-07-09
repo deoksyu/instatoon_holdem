@@ -33,6 +33,32 @@ function computeSidePots(players) {
   return pots;
 }
 
+// 족보 판정에 쓰인 5장 중 실제로 패턴(페어/트리플/스트레이트/플러시 등)을 이루는 카드만 골라낸다.
+// 예: 원페어면 5장 중 짝을 이루는 2장만, 킥커 3장은 제외.
+function pickHandDefiningCards(solved) {
+  const cards = solved.cards; // pokersolver가 고른 최선의 5장 (킥커 포함)
+  const name = solved.name;
+  const toStr = (c) => `${c.value}${c.suit}`;
+  if (name === "High Card") {
+    return [toStr(cards[0])];
+  }
+  if (name === "Straight" || name === "Flush" || name === "Straight Flush" || name === "Royal Flush") {
+    return cards.map(toStr);
+  }
+  // Pair / Two Pair / Three of a Kind / Full House / Four of a Kind:
+  // 랭크별로 묶어서 2장 이상 모인 그룹만 하이라이트 (킥커는 그룹 크기 1이라 자동 제외됨)
+  const groups = new Map();
+  for (const c of cards) {
+    if (!groups.has(c.value)) groups.set(c.value, []);
+    groups.get(c.value).push(c);
+  }
+  const picked = [];
+  for (const group of groups.values()) {
+    if (group.length >= 2) picked.push(...group);
+  }
+  return picked.map(toStr);
+}
+
 class Table {
   constructor({ smallBlind = 10, bigBlind = 20 } = {}) {
     this.smallBlind = smallBlind;
@@ -171,7 +197,8 @@ class Table {
     return {
       name: solved.name,
       descr: solved.descr,
-      cards: solved.cards.map((c) => `${c.value}${c.suit}`),
+      // 킥커(패 등수와 무관한 나머지 카드)는 제외하고, 실제로 족보를 이루는 카드만 반환한다.
+      cards: pickHandDefiningCards(solved),
     };
   }
 
