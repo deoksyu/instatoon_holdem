@@ -407,12 +407,11 @@ function render(msg) {
 
   // 각 렌더 단계를 개별적으로 감싸서, 한 섹션에서 예외가 나도(예: 새 기능 버그)
   // 승인 패널 등 나머지 UI가 통째로 멈추지 않도록 방어한다.
-  safeRender("renderSeats", () => renderSeats(state, msg.you, msg.verified));
+  safeRender("renderSeats", () => renderSeats(state, msg.you, msg.verified, msg.myCardInventory));
   safeRender("renderMyHoleCards", () => renderMyHoleCards(state, msg.you, msg.myHandInfo));
   safeRender("renderResult", () => renderResult(state));
   safeRender("renderControls", () => renderControls(msg, state));
   safeRender("renderMyStatus", () => renderMyStatus(msg, state));
-  safeRender("renderCardInventory", () => renderCardInventory(msg, state));
   safeRender("renderNotifications", () => renderNotifications(msg));
   safeRender("renderPendingPanel", () => renderPendingPanel(msg));
 }
@@ -605,57 +604,29 @@ document.getElementById("btn-cancel-leave").addEventListener("click", (e) => {
   });
 });
 
-function renderCardInventory(msg, state) {
-  const box = document.getElementById("card-inventory");
-  box.innerHTML = "";
-  const inv = (msg.myCardInventory || []).filter((c) => c.rarity !== "꽝");
-  if (inv.length === 0) return;
-
-  const passives = inv.filter((c) => c.type === "passive");
-  const actives = inv.filter((c) => c.type === "active");
-
-  if (passives.length > 0) {
-    const label = document.createElement("div");
-    label.className = "inv-section-label";
-    label.textContent = "보유 중 (패시브 - 자동 적용)";
-    box.appendChild(label);
-    const row = document.createElement("div");
-    row.className = "inv-row";
-    for (const card of passives) {
-      const el = document.createElement("div");
-      el.className = "inv-card passive";
-      el.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
-      if (card.description) el.dataset.tooltip = card.description;
-      el.textContent = `${card.emoji} [${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})`;
-      row.appendChild(el);
+// 보유 중인 기프트를 좁은 원형 배지로 만들어 반환 (내 프로필 사진 위에 겹쳐 보여주기용).
+// 패시브는 눌러도 아무 일 없고(자동 적용), 액티브는 눌러서 바로 사용.
+// 화면 전체를 가로지르는 별도 목록 대신, 본인 아바타 위에만 붙기 때문에 다른 UI와 겹칠 일이 없다.
+function buildSeatInventoryBadges(inv, state) {
+  const filtered = (inv || []).filter((c) => c.rarity !== "꽝");
+  if (filtered.length === 0) return null;
+  const box = document.createElement("div");
+  box.className = "seat-inventory";
+  for (const card of filtered) {
+    const chip = document.createElement("div");
+    chip.className = "seat-inv-chip inv-card " + (card.type === "active" ? "active" : "passive");
+    chip.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
+    chip.textContent = card.emoji || "🎁";
+    const tip = `[${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})` + (card.description ? `
+${card.description}` : "");
+    chip.dataset.tooltip = tip;
+    if (card.type === "active") {
+      chip.classList.add("usable");
+      chip.addEventListener("click", () => useGift(card, state));
     }
-    box.appendChild(row);
+    box.appendChild(chip);
   }
-
-  if (actives.length > 0) {
-    const label = document.createElement("div");
-    label.className = "inv-section-label";
-    label.textContent = "사용 가능 (액티브)";
-    box.appendChild(label);
-    const row = document.createElement("div");
-    row.className = "inv-row";
-    for (const card of actives) {
-      const wrap = document.createElement("div");
-      wrap.className = "inv-card active";
-      wrap.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
-      if (card.description) wrap.dataset.tooltip = card.description;
-      const label2 = document.createElement("span");
-      label2.textContent = `${card.emoji} [${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})`;
-      wrap.appendChild(label2);
-      const btn = document.createElement("button");
-      btn.className = "btn-use-gift";
-      btn.textContent = "사용";
-      btn.addEventListener("click", () => useGift(card, state));
-      wrap.appendChild(btn);
-      row.appendChild(wrap);
-    }
-    box.appendChild(row);
-  }
+  return box;
 }
 
 function useGift(card, state) {
@@ -773,7 +744,7 @@ function renderNotifications(msg) {
 let prevBetThisStreet = {};
 let prevHandNumberForChips = null;
 
-function renderSeats(state, you, verifiedMap) {
+function renderSeats(state, you, verifiedMap, myCardInventory) {
   const seatsEl = document.getElementById("seats");
   seatsEl.innerHTML = "";
   const players = state.players;
@@ -829,6 +800,10 @@ function renderSeats(state, you, verifiedMap) {
       chip.className = "dealer-chip";
       chip.textContent = "D";
       avatarWrap.appendChild(chip);
+    }
+    if (p.id === you) {
+      const invBadges = buildSeatInventoryBadges(myCardInventory, state);
+      if (invBadges) avatarWrap.appendChild(invBadges);
     }
     seat.appendChild(avatarWrap);
 
