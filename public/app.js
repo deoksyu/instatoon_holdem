@@ -75,7 +75,7 @@ function cardEl(card, opts = {}) {
   } else {
     const layout = PIP_LAYOUTS[label] || [];
     const pips = document.createElement("div");
-    pips.className = "pc-pips" + (layout.length >= 8 ? " pc-pips-dense" : "");
+    pips.className = "pc-pips" + (layout.length >= 7 ? " pc-pips-dense" : "");
     for (const [col, row] of layout) {
       const pip = document.createElement("span");
       pip.className = "pc-pip" + (row >= 3 ? " pc-pip-flip" : "");
