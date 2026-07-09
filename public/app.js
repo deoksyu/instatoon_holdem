@@ -431,7 +431,7 @@ function renderCardInventory(msg, state) {
       const el = document.createElement("div");
       el.className = "inv-card passive";
       el.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
-      el.title = card.description || "";
+      if (card.description) el.dataset.tooltip = card.description;
       el.textContent = `${card.emoji} [${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})`;
       row.appendChild(el);
     }
@@ -449,7 +449,7 @@ function renderCardInventory(msg, state) {
       const wrap = document.createElement("div");
       wrap.className = "inv-card active";
       wrap.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
-      wrap.title = card.description || "";
+      if (card.description) wrap.dataset.tooltip = card.description;
       const label2 = document.createElement("span");
       label2.textContent = `${card.emoji} [${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})`;
       wrap.appendChild(label2);
@@ -535,16 +535,14 @@ function showNextGiftReveal() {
   cardEl.classList.remove("grc-anim");
   void cardEl.offsetWidth; // reflow to restart animation
   cardEl.classList.add("grc-anim");
-
-  clearTimeout(giftRevealTimer);
-  giftRevealTimer = setTimeout(dismissGiftReveal, 3200);
+  // 자동으로 안 넘어가고 클릭해야만 다음 기프트(또는 닫기)로 진행
 }
 
 function dismissGiftReveal() {
   clearTimeout(giftRevealTimer);
   const overlay = document.getElementById("gift-reveal-overlay");
   if (overlay) overlay.classList.add("hidden");
-  setTimeout(showNextGiftReveal, 250);
+  setTimeout(showNextGiftReveal, 200);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
