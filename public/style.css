@@ -134,12 +134,12 @@ input:focus { outline: 2px solid #ffcc4d; }
 
 /* ---- 실제 트럼프 카드 디자인: 코너 인덱스 + 핍(pip) 배열 / 얼굴카드 ---- */
 .pc-corner {
-  position: absolute; display: flex; flex-direction: column; align-items: center; line-height: 1;
+  position: absolute; display: flex; flex-direction: row; align-items: center; gap: 0.15em; line-height: 1;
   font-weight: 800; font-size: 0.62em;
 }
 .pc-corner-tl { top: 7%; left: 9%; }
 .pc-corner-br { bottom: 7%; right: 9%; transform: rotate(180deg); }
-.pc-corner .pc-suit { font-size: 0.85em; margin-top: 1px; }
+.pc-corner .pc-suit { font-size: 0.85em; }
 
 .pc-pips {
   position: absolute; inset: 20% 14%;
