@@ -112,23 +112,24 @@ input:focus { outline: 2px solid #ffcc4d; }
   box-shadow: 0 16px 34px rgba(0,0,0,0.65);
 }
 
-/* 화면 하단에 고정 - 평소엔 카드의 약 2/3를 아래로 내려서 위쪽 모서리 정보(숫자/무늬)만
-   보이게 하고, 마우스를 올리면 위로 올라오며 커져서 전체가 또렷하게 보인다 */
+/* 문서 흐름에 그대로 두고(뷰포트 기준 고정 X), 음수 margin-bottom으로 카드 아래쪽 2/3를
+   다음 영역(액션 버튼 바) 뒤로 밀어넣는다. 버튼 바는 z-index를 높여 항상 카드보다 앞에 그려지므로
+   평소엔 카드 위쪽 모서리(숫자/무늬)만 버튼 바 위로 살짝 보이고, 나머지는 버튼 뒤로 자연스럽게
+   가려진다. 호버하면 카드가 위(열린 보드 쪽)로 올라오며 커져서 버튼을 가리지 않고 전체가 보인다. */
 .my-hole-cards {
-  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%);
+  position: relative; z-index: 5;
   display: flex; justify-content: center; gap: 16px;
-  z-index: 30; pointer-events: none;
+  margin: 10px 0 -76px;
 }
 .my-hole-cards .card-chip {
   width: 84px; height: 118px; font-size: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.55);
-  pointer-events: auto;
-  transform: translateY(76px);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 .my-hole-cards .card-chip.playing-card:hover {
-  transform: translateY(0) scale(1.15);
+  transform: translateY(-46px) scale(1.15);
   box-shadow: 0 16px 34px rgba(0,0,0,0.65);
   z-index: 200;
+  position: relative;
 }
 
 /* ---- 실제 트럼프 카드 디자인: 코너 인덱스 + 핍(pip) 배열 / 얼굴카드 ---- */
@@ -141,11 +142,14 @@ input:focus { outline: 2px solid #ffcc4d; }
 .pc-corner .pc-suit { font-size: 0.85em; margin-top: 1px; }
 
 .pc-pips {
-  position: absolute; inset: 17% 11%;
+  position: absolute; inset: 20% 14%;
   display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, 1fr);
 }
-.pc-pip { display: flex; align-items: center; justify-content: center; font-size: 1.05em; }
+.pc-pip { display: flex; align-items: center; justify-content: center; font-size: 0.85em; line-height: 1; }
 .pc-pip-flip { transform: rotate(180deg); }
+/* 핍이 8~10개로 촘촘한 카드는 한 단계 더 축소해서 서로 겹치지 않게 */
+.pc-pips.pc-pips-dense { inset: 21% 15%; }
+.pc-pips.pc-pips-dense .pc-pip { font-size: 0.68em; }
 
 .pc-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .pc-face-letter { font-size: 2.1em; font-weight: 900; line-height: 1; }
@@ -237,11 +241,13 @@ input:focus { outline: 2px solid #ffcc4d; }
 }
 
 .result-banner {
+  position: relative; z-index: 20;
   margin: 0 16px 8px; padding: 12px 16px; background: #22252f; border-radius: 10px;
   font-size: 14px; text-align: center; color: #ffcc4d;
 }
 
 .controls {
+  position: relative; z-index: 20;
   padding: 14px 16px 22px; background: #1e2029;
   display: flex; justify-content: center;
 }

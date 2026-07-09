@@ -62,9 +62,9 @@ function cardEl(card) {
         : `<span class="pc-face-letter">${rank}</span><span class="pc-face-suit">${suitSym}</span>`;
     div.appendChild(face);
   } else {
-    const pips = document.createElement("div");
-    pips.className = "pc-pips";
     const layout = PIP_LAYOUTS[label] || [];
+    const pips = document.createElement("div");
+    pips.className = "pc-pips" + (layout.length >= 8 ? " pc-pips-dense" : "");
     for (const [col, row] of layout) {
       const pip = document.createElement("span");
       pip.className = "pc-pip" + (row >= 3 ? " pc-pip-flip" : "");
