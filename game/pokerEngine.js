@@ -159,6 +159,19 @@ class Table {
     return this.players.find((p) => p.id === id);
   }
 
+  // 골든펜 기프트용: 아직 패가 살아있는 플레이어의 홀카드 2장을 전부 새로 교체
+  redrawHoleCards(playerId) {
+    const p = this.getPlayer(playerId);
+    if (!p) throw new Error("플레이어를 찾을 수 없습니다.");
+    if (p.folded) throw new Error("이미 폴드한 상태에서는 사용할 수 없습니다.");
+    if (this.street === "waiting" || this.street === "showdown") {
+      throw new Error("지금은 사용할 수 없습니다.");
+    }
+    if (this.deck.length < 2) throw new Error("덱에 카드가 부족합니다.");
+    p.holeCards = [this.deck.pop(), this.deck.pop()];
+    return p.holeCards;
+  }
+
   currentPlayer() {
     if (this.currentSeat < 0) return null;
     return this.players[this.currentSeat];

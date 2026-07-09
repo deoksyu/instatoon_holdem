@@ -230,7 +230,7 @@ function render(msg) {
   renderResult(state);
   renderControls(msg, state);
   renderMyStatus(msg, state);
-  renderCardInventory(msg);
+  renderCardInventory(msg, state);
   renderNotifications(msg);
   renderPendingPanel(msg);
 }
@@ -308,18 +308,77 @@ function renderMyStatus(msg, state) {
   document.getElementById("ms-rebuy-tag").classList.toggle("hidden", !(rebuy && rebuy.eligible));
 }
 
-function renderCardInventory(msg) {
+function renderCardInventory(msg, state) {
   const box = document.getElementById("card-inventory");
   box.innerHTML = "";
-  const inv = msg.myCardInventory || [];
-  for (const card of inv) {
-    if (card.rarity === "꽝") continue;
-    const el = document.createElement("div");
-    el.className = "inv-card";
-    el.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
-    el.textContent = `${card.emoji} [${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})`;
-    box.appendChild(el);
+  const inv = (msg.myCardInventory || []).filter((c) => c.rarity !== "꽝");
+  if (inv.length === 0) return;
+
+  const passives = inv.filter((c) => c.type === "passive");
+  const actives = inv.filter((c) => c.type === "active");
+
+  if (passives.length > 0) {
+    const label = document.createElement("div");
+    label.className = "inv-section-label";
+    label.textContent = "보유 중 (패시브 - 자동 적용)";
+    box.appendChild(label);
+    const row = document.createElement("div");
+    row.className = "inv-row";
+    for (const card of passives) {
+      const el = document.createElement("div");
+      el.className = "inv-card passive";
+      el.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
+      el.title = card.description || "";
+      el.textContent = `${card.emoji} [${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})`;
+      row.appendChild(el);
+    }
+    box.appendChild(row);
   }
+
+  if (actives.length > 0) {
+    const label = document.createElement("div");
+    label.className = "inv-section-label";
+    label.textContent = "사용 가능 (액티브)";
+    box.appendChild(label);
+    const row = document.createElement("div");
+    row.className = "inv-row";
+    for (const card of actives) {
+      const wrap = document.createElement("div");
+      wrap.className = "inv-card active";
+      wrap.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
+      wrap.title = card.description || "";
+      const label2 = document.createElement("span");
+      label2.textContent = `${card.emoji} [${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})`;
+      wrap.appendChild(label2);
+      const btn = document.createElement("button");
+      btn.className = "btn-use-gift";
+      btn.textContent = "사용";
+      btn.addEventListener("click", () => useGift(card, state));
+      wrap.appendChild(btn);
+      row.appendChild(wrap);
+    }
+    box.appendChild(row);
+  }
+}
+
+function useGift(card, state) {
+  let targetPlayerId = null;
+  if (card.effectId === "peek_allin_card") {
+    const eligible = (state.players || []).filter((p) => p.allIn && p.id !== lastState?.you);
+    if (eligible.length === 0) return alert("지금은 올인 상태인 상대가 없어요.");
+    if (eligible.length === 1) {
+      targetPlayerId = eligible[0].id;
+    } else {
+      const listText = eligible.map((p, i) => `${i + 1}. ${p.name}`).join("\n");
+      const pick = prompt(`누구의 카드를 훔쳐볼까요?\n${listText}`, "1");
+      const idx = parseInt(pick, 10) - 1;
+      if (!(idx >= 0 && idx < eligible.length)) return;
+      targetPlayerId = eligible[idx].id;
+    }
+  }
+  socket.emit("gift:use", { giftId: card.id, targetPlayerId }, (res) => {
+    if (!res.ok) alert(res.error);
+  });
 }
 
 function showFanToast(text) {
@@ -330,12 +389,14 @@ function showFanToast(text) {
   showFanToast._t = setTimeout(() => toast.classList.add("hidden"), 3500);
 }
 
+let lastPeekAt = 0;
+
 function renderNotifications(msg) {
   if (msg.lastCardDraw && msg.lastCardDraw.at && msg.lastCardDraw.at > lastCardDrawAt) {
     lastCardDrawAt = msg.lastCardDraw.at;
     const d = msg.lastCardDraw;
     if (d.card.rarity !== "꽝") {
-      showFanToast(`${d.card.emoji} ${d.playerName}님이 응원 ${d.cheerCountAtDraw}회 받고 [${d.card.rarity}] ${d.card.name} 카드 획득!`);
+      showFanToast(`${d.card.emoji} ${d.playerName}님이 응원 ${d.cheerCountAtDraw}회 받고 [${d.card.rarity}] ${d.card.name} 기프트 획득!`);
     }
   }
   if (msg.lastAnnouncement && msg.lastAnnouncement.at && msg.lastAnnouncement.at > lastAnnouncementAt) {
@@ -345,7 +406,15 @@ function renderNotifications(msg) {
       showFanToast(`💰 ${a.hunterName}님이 ${a.targetName}님을 파산시키고 현상금 ${a.amount.toLocaleString()} 획득!`);
     } else if (a.type === "rebuy") {
       showFanToast(`♻️ ${a.playerName}님이 무료 리바인으로 부활! (${a.amount.toLocaleString()} 칩)`);
+    } else if (a.type === "awaken") {
+      showFanToast(`🌟 ${a.playerName}님이 [만찢 각성카드]로 부활! (${a.amount.toLocaleString()} 칩)`);
+    } else if (a.type === "gift") {
+      showFanToast(a.text);
     }
+  }
+  if (msg.myPeek && msg.myPeek.at && msg.myPeek.at > lastPeekAt) {
+    lastPeekAt = msg.myPeek.at;
+    showFanToast(`🔍 [필살기 스크롤] ${msg.myPeek.targetName}님의 카드 한 장: ${msg.myPeek.card}`);
   }
 }
 

@@ -72,11 +72,20 @@ function newRoom(table) {
     eliminated: new Set(),
     cheerCounts: new Map(),
     cardInventory: new Map(),
+    blindExempt: new Set(),      // 역전의 부적 사용자 - 다음 블라인드 면제 대기
+    doubleWinFlags: new Set(),   // 트로피 사용자 - 이번 핸드 승리시 2배
+    privatePeeks: new Map(),     // 필살기 스크롤 결과 (본인에게만 보임)
     lastCurrentPlayerId: null,
     lastResolvedHandNumber: 0,
     lastCardDraw: null,
     lastAnnouncement: null,
   };
+}
+
+// 보유 중인(미사용) 패시브 기프트 개수
+function countPassive(room, playerId, effectId) {
+  const inv = room.cardInventory.get(playerId) || [];
+  return inv.filter((c) => c.type === "passive" && c.effectId === effectId && !c.used).length;
 }
 
 function registerPlayerMeta(room, profile, startingChips, playerId) {
@@ -101,9 +110,14 @@ function maybeDrawCheerCard(room) {
   const table = room.table;
   const curId = table.currentPlayer()?.id || null;
   if (curId && curId !== room.lastCurrentPlayerId) {
-    const count = room.cheerCounts.get(curId) || 0;
-    const card = drawCard(count);
-    card.cheerCountAtDraw = count; // 카드에도 응원 수를 기록해 인벤토리에서도 확인 가능하게
+    const rawCount = room.cheerCounts.get(curId) || 0;
+    // 패시브 보정: 화이팅 부적(+2), 팬미팅 초대장(+5) - 중첩 가능
+    const boosted =
+      rawCount +
+      countPassive(room, curId, "cheer_boost_2") * 2 +
+      countPassive(room, curId, "cheer_boost_5") * 5;
+    const card = drawCard(boosted);
+    card.cheerCountAtDraw = rawCount; // 표시용은 실제 응원 수 기준
     room.cheerCounts.set(curId, 0);
     const inv = room.cardInventory.get(curId) || [];
     inv.push(card);
@@ -112,14 +126,15 @@ function maybeDrawCheerCard(room) {
       playerId: curId,
       playerName: table.getPlayer(curId)?.name,
       card,
-      cheerCountAtDraw: count,
+      cheerCountAtDraw: rawCount,
+      boostedCount: boosted,
       at: Date.now(),
     };
   }
   room.lastCurrentPlayerId = curId;
 }
 
-// 핸드가 쇼다운/폴드승리로 끝났을 때 1회만 호출: 바운티 정산 + 무료 리바인 처리
+// 핸드가 쇼다운/폴드승리로 끝났을 때 1회만 호출: 트로피 정산 + 바운티 정산 + 무료 리바인/부활 처리
 function resolveHandEnd(room) {
   const table = room.table;
   if (table.street !== "showdown" || !table.lastResult) return;
@@ -127,6 +142,27 @@ function resolveHandEnd(room) {
   room.lastResolvedHandNumber = table.handNumber;
 
   const winners = table.lastResult.winners || [];
+
+  // 트로피(이번 핸드 승리 2배) 정산 - 사용했던 사람은 이겼든 졌든 이번 핸드로 소모
+  if (room.doubleWinFlags.size > 0) {
+    for (const winner of winners) {
+      if (room.doubleWinFlags.has(winner.id)) {
+        const p = table.getPlayer(winner.id);
+        if (p) {
+          p.chips += winner.amount; // 원래 받은 만큼 한 번 더 = 2배
+          room.lastAnnouncement = {
+            type: "gift",
+            playerId: winner.id,
+            playerName: winner.name,
+            text: `${winner.name}님이 [인스타툰 대상 트로피]로 이번 핸드 획득 칩이 2배가 됐어요!`,
+            at: Date.now(),
+          };
+        }
+      }
+    }
+    room.doubleWinFlags.clear();
+  }
+
   if (winners.length === 0) return;
   const topWinner = winners.reduce((a, b) => (b.amount > a.amount ? b : a), winners[0]);
 
@@ -134,7 +170,24 @@ function resolveHandEnd(room) {
     if (p.chips === 0 && p.totalBetInHand > 0 && !room.eliminated.has(p.id)) {
       room.eliminated.add(p.id);
 
-      if (isRebuyEligible(room, p.id)) {
+      const reviveGift = (room.cardInventory.get(p.id) || []).find(
+        (c) => c.type === "passive" && c.effectId === "auto_revive" && !c.used
+      );
+
+      if (reviveGift) {
+        reviveGift.used = true;
+        room.cardInventory.set(p.id, (room.cardInventory.get(p.id) || []).filter((c) => c.id !== reviveGift.id));
+        p.chips = room.startingChipsMap.get(p.id) || 0;
+        p.sittingOut = false;
+        room.eliminated.delete(p.id);
+        room.lastAnnouncement = {
+          type: "awaken",
+          playerId: p.id,
+          playerName: p.name,
+          amount: p.chips,
+          at: Date.now(),
+        };
+      } else if (isRebuyEligible(room, p.id)) {
         room.rebuyUsed.set(p.id, true);
         p.chips = room.startingChipsMap.get(p.id) || 0;
         p.sittingOut = false;
@@ -149,7 +202,9 @@ function resolveHandEnd(room) {
       } else {
         p.sittingOut = true;
         if (topWinner.id !== p.id) {
-          const bounty = room.bounties.get(p.id) || 0;
+          const baseBounty = room.bounties.get(p.id) || 0;
+          const bonusMult = 1 + countPassive(room, topWinner.id, "bounty_bonus_10pct") * 0.1;
+          const bounty = Math.round(baseBounty * bonusMult);
           if (bounty > 0) {
             room.bountyEarnings.set(topWinner.id, (room.bountyEarnings.get(topWinner.id) || 0) + bounty);
             room.lastAnnouncement = {
@@ -165,6 +220,78 @@ function resolveHandEnd(room) {
         }
       }
     }
+  }
+}
+
+// 역전의 부적(다음 블라인드 면제) 처리: startHand 직후 호출
+function applyBlindExemptions(room) {
+  if (room.blindExempt.size === 0) return;
+  for (const playerId of [...room.blindExempt]) {
+    const p = room.table.getPlayer(playerId);
+    if (!p) { room.blindExempt.delete(playerId); continue; }
+    if (p.betThisStreet > 0) {
+      const refund = p.betThisStreet;
+      p.chips += refund;
+      p.betThisStreet -= refund;
+      p.totalBetInHand -= refund;
+      if (p.chips > 0) p.allIn = false;
+      room.blindExempt.delete(playerId);
+      room.lastAnnouncement = {
+        type: "gift",
+        playerId,
+        playerName: p.name,
+        text: `${p.name}님이 [역전의 부적]으로 이번 블라인드를 면제받았어요!`,
+        at: Date.now(),
+      };
+    }
+  }
+}
+
+// 액티브 기프트 발동
+function applyActiveGift(room, playerId, item, targetPlayerId) {
+  const table = room.table;
+  const player = table.getPlayer(playerId);
+  if (!player) throw new Error("게임에 참여 중이 아닙니다.");
+
+  switch (item.effectId) {
+    case "blind_refund": {
+      player.chips += table.bigBlind;
+      room.lastAnnouncement = {
+        type: "gift",
+        playerId,
+        playerName: player.name,
+        text: `${player.name}님이 [소소한 응원]으로 ${table.bigBlind.toLocaleString()}칩을 얻었어요!`,
+        at: Date.now(),
+      };
+      break;
+    }
+    case "peek_allin_card": {
+      const target = table.getPlayer(targetPlayerId);
+      if (!target || !target.allIn) throw new Error("올인 상태인 상대를 선택해주세요.");
+      if (!target.holeCards || target.holeCards.length === 0) throw new Error("훔쳐볼 카드가 없습니다.");
+      const peeked = target.holeCards[Math.floor(Math.random() * target.holeCards.length)];
+      room.privatePeeks.set(playerId, {
+        targetId: target.id,
+        targetName: target.name,
+        card: peeked,
+        at: Date.now(),
+      });
+      break;
+    }
+    case "blind_exempt_next": {
+      room.blindExempt.add(playerId);
+      break;
+    }
+    case "redraw_hole_cards": {
+      table.redrawHoleCards(playerId); // 유효하지 않으면 여기서 에러 throw
+      break;
+    }
+    case "double_win_this_hand": {
+      room.doubleWinFlags.add(playerId);
+      break;
+    }
+    default:
+      throw new Error("알 수 없는 기프트입니다.");
   }
 }
 
@@ -232,6 +359,7 @@ function broadcastState(roomCode) {
       you: socketId,
       myCardInventory: room.cardInventory.get(socketId) || [],
       pendingRequests: socketId === room.hostSocketId ? pendingListForHost(room) : [],
+      myPeek: room.privatePeeks.get(socketId) || null,
       ...commonExtra,
     });
   }
@@ -392,6 +520,7 @@ io.on("connection", (socket) => {
     if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 시작할 수 있습니다." });
     try {
       room.table.startHand();
+      applyBlindExemptions(room);
       afterTableChange(room);
       cb?.({ ok: true });
       broadcastState(roomCode);
@@ -421,6 +550,27 @@ io.on("connection", (socket) => {
     if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 다음 핸드를 시작할 수 있습니다." });
     try {
       room.table.startHand();
+      applyBlindExemptions(room);
+      afterTableChange(room);
+      cb?.({ ok: true });
+      broadcastState(roomCode);
+    } catch (e) {
+      cb?.({ ok: false, error: e.message });
+    }
+  });
+
+  // ---- 기프트 사용 (액티브) ----
+  socket.on("gift:use", ({ giftId, targetPlayerId }, cb) => {
+    const roomCode = roomOfSocket(socket.id);
+    const room = rooms.get(roomCode);
+    if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
+    const inv = room.cardInventory.get(socket.id) || [];
+    const item = inv.find((c) => c.id === giftId && !c.used);
+    if (!item) return cb?.({ ok: false, error: "사용할 수 없는 기프트입니다." });
+    if (item.type !== "active") return cb?.({ ok: false, error: "패시브 기프트는 보유만 해도 자동으로 적용돼요." });
+    try {
+      applyActiveGift(room, socket.id, item, targetPlayerId);
+      room.cardInventory.set(socket.id, inv.filter((c) => c.id !== giftId));
       afterTableChange(room);
       cb?.({ ok: true });
       broadcastState(roomCode);
@@ -465,6 +615,23 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`인스타툰 홀덤 서버 실행 중: http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`인스타툰 홀덤 서버 실행 중: http://localhost:${PORT}`);
+  });
+}
+
+module.exports = {
+  rooms,
+  newRoom,
+  registerPlayerMeta,
+  countPassive,
+  isRebuyEligible,
+  maybeDrawCheerCard,
+  resolveHandEnd,
+  applyBlindExemptions,
+  applyActiveGift,
+  afterTableChange,
+  MAX_PLAYERS,
+  BOUNTY_RATE,
+};

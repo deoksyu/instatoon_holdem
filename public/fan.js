@@ -128,7 +128,7 @@ function render(msg) {
     lastCardDrawAt = msg.lastCardDraw.at;
     const d = msg.lastCardDraw;
     if (d.card.rarity !== "꽝") {
-      showToast(`${d.card.emoji} ${d.playerName}님이 응원 ${d.cheerCountAtDraw}회 받고 [${d.card.rarity}] ${d.card.name} 카드 획득!`);
+      showToast(`${d.card.emoji} ${d.playerName}님이 응원 ${d.cheerCountAtDraw}회 받고 [${d.card.rarity}] ${d.card.name} 기프트 획득!`);
     }
   }
   if (msg.lastAnnouncement && msg.lastAnnouncement.at && msg.lastAnnouncement.at > lastAnnouncementAt) {
@@ -138,6 +138,10 @@ function render(msg) {
       showToast(`💰 ${a.hunterName}님이 ${a.targetName}님을 파산시키고 현상금 ${a.amount.toLocaleString()} 획득!`);
     } else if (a.type === "rebuy") {
       showToast(`♻️ ${a.playerName}님이 무료 리바인으로 부활! (${a.amount.toLocaleString()} 칩)`);
+    } else if (a.type === "awaken") {
+      showToast(`🌟 ${a.playerName}님이 [만찢 각성카드]로 부활! (${a.amount.toLocaleString()} 칩)`);
+    } else if (a.type === "gift") {
+      showToast(a.text);
     }
   }
 }
