@@ -40,42 +40,37 @@ function cardEl(card, opts = {}) {
   return div;
 }
 
-// ---------- 칩 그래픽 (진짜 카지노 포커칩처럼 위에서 본 원판 + 여러 색이 흩뿌려진 더미) ----------
-// 실제 카지노 칩 색 관례를 따른 액면가별 색상
-const CHIP_DENOMS = [
-  { value: 1000, color: "#f4c430", edge: "#fff6d8" }, // 금색
-  { value: 500, color: "#a855f7", edge: "#f1e2ff" },  // 보라
-  { value: 100, color: "#1f2430", edge: "#e6e8ec" },  // 검정
-  { value: 25, color: "#1f8a4c", edge: "#dbf5e4" },   // 초록
-  { value: 5, color: "#e0342c", edge: "#ffd9d6" },    // 빨강
-  { value: 1, color: "#e8e6e0", edge: "#8a8a86" },    // 흰색
-];
+// ---------- 칩 그래픽 (10=파란/100=빨강/1000=초록, 50/30/20 비율로 넓게 흩뿌린 카지노 더미) ----------
+const CHIP_COLORS = {
+  blue: { value: 10, color: "#2f6fed", edge: "#dbe8ff" },
+  red: { value: 100, color: "#e0342c", edge: "#ffd9d6" },
+  green: { value: 1000, color: "#1f8a4c", edge: "#dbf5e4" },
+};
+const CHIP_MIX_RATIO = [["blue", 0.5], ["red", 0.3], ["green", 0.2]];
 
-// amount를 액면가 칩들로 그리디 분해 (표시용 - 실제 정산과 무관)
-function denominationBreakdown(amount) {
-  let remaining = Math.max(0, Math.round(amount));
+// 표시할 칩 개수(n)를 blue/red/green에 50/30/20 비율로 최대한 고르게 인터리브해서 배분
+// (덩어리로 몰리지 않고 색이 골고루 섞여 보이도록 부족분이 가장 큰 색을 매번 채워나감)
+function chipMixTokens(n) {
+  const counts = { blue: 0, red: 0, green: 0 };
   const tokens = [];
-  for (const d of CHIP_DENOMS) {
-    while (remaining >= d.value && tokens.length < 60) {
-      tokens.push(d);
-      remaining -= d.value;
+  for (let i = 0; i < n; i++) {
+    let bestKey = null;
+    let bestDeficit = -Infinity;
+    for (const [key, w] of CHIP_MIX_RATIO) {
+      const deficit = w * (i + 1) - counts[key];
+      if (deficit > bestDeficit) {
+        bestDeficit = deficit;
+        bestKey = key;
+      }
     }
+    counts[bestKey]++;
+    tokens.push(CHIP_COLORS[bestKey]);
   }
-  if (tokens.length === 0 && amount > 0) tokens.push(CHIP_DENOMS[CHIP_DENOMS.length - 1]);
   return tokens;
 }
 
-// 분해된 토큰이 표시 개수(maxChips)보다 많으면 액면가 다양성을 유지하며 고르게 샘플링
-function sampleTokens(tokens, maxChips) {
-  if (tokens.length <= maxChips) return tokens;
-  const picked = [];
-  const step = tokens.length / maxChips;
-  for (let i = 0; i < maxChips; i++) picked.push(tokens[Math.floor(i * step)]);
-  return picked;
-}
-
 // amount에 비례해 칩 개수를 정하고(maxAmount 기준 상대비교), 실제 카지노 칩처럼 위에서 본
-// 원판(테두리 줄무늬 + 안쪽 원)들을 살짝 흩뿌려진 더미 모양으로 배치한다.
+// 원판(테두리 줄무늬 + 안쪽 원)들을 넓게 흩뿌려진 더미 모양으로 배치한다.
 function chipStackEl(amount, maxAmount, opts = {}) {
   const wrap = document.createElement("div");
   wrap.className = "chip-pile" + (opts.small ? " small" : "");
@@ -83,21 +78,21 @@ function chipStackEl(amount, maxAmount, opts = {}) {
     wrap.classList.add("empty");
   } else {
     const ratio = maxAmount > 0 ? Math.max(0, Math.min(1, amount / maxAmount)) : 0;
-    const maxChips = opts.maxDiscs || (opts.small ? 5 : 9);
+    const maxChips = opts.maxDiscs || (opts.small ? 6 : 11);
     const chipCount = Math.max(1, Math.round(ratio * maxChips));
-    const tokens = sampleTokens(denominationBreakdown(amount), chipCount);
+    const tokens = chipMixTokens(chipCount);
+    const spread = opts.small ? 11 : 19; // 흩뿌림 반경(px) - 넓게
     tokens.forEach((d, i) => {
       const chip = document.createElement("div");
       chip.className = "poker-chip";
       chip.style.setProperty("--chip-color", d.color);
       chip.style.setProperty("--chip-edge", d.edge);
-      // 인덱스 기반 결정론적 "흩뿌림" - 매 렌더마다 위치가 튀지 않으면서도 제각각으로 보이게
-      const jitterX = (((i * 37 + 11) % 17) - 8) * (opts.small ? 0.6 : 1);
-      const jitterY = (((i * 53 + 7) % 11) - 5) * (opts.small ? 0.6 : 1);
-      const rot = ((i * 29 + 13) % 50) - 25;
-      const stackLift = i * (opts.small ? 1.2 : 1.8);
+      // 인덱스 기반 결정론적 "흩뿌림" - 매 렌더마다 위치가 튀지 않으면서도 넓게 제각각으로 보이게
+      const jitterX = (((i * 41 + 11) % (spread * 2 + 1)) - spread);
+      const jitterY = (((i * 67 + 23) % (spread * 2 + 1)) - spread) * 0.65;
+      const rot = ((i * 29 + 13) % 70) - 35;
       chip.style.left = `calc(50% + ${jitterX}px)`;
-      chip.style.top = `calc(50% + ${jitterY}px - ${stackLift}px)`;
+      chip.style.top = `calc(50% + ${jitterY}px)`;
       chip.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`;
       chip.style.zIndex = String(i);
       wrap.appendChild(chip);
@@ -122,7 +117,8 @@ function spawnChipThrow(fromLeftPct, fromTopPct, amount) {
     setTimeout(() => {
       const el = document.createElement("div");
       el.className = "chip-throw";
-      const d = CHIP_DENOMS[Math.floor(Math.random() * CHIP_DENOMS.length)];
+      const r = Math.random();
+      const d = r < 0.5 ? CHIP_COLORS.blue : r < 0.8 ? CHIP_COLORS.red : CHIP_COLORS.green;
       el.style.setProperty("--throw-color", d.color);
       el.style.setProperty("--throw-edge", d.edge);
       const jitterX = (Math.random() - 0.5) * 6;
