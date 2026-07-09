@@ -765,6 +765,7 @@ function renderSeats(state, you, verifiedMap, myCardInventory) {
   if (myIndex === -1) myIndex = 0;
 
   const rx = 42, ry = 36; // ellipse radii in %
+  let myAvatarLeft = 50, myAvatarTop = 86;
   for (let i = 0; i < n; i++) {
     const p = players[(myIndex + i) % n];
     const angleDeg = 90 + i * (360 / n);
@@ -801,10 +802,6 @@ function renderSeats(state, you, verifiedMap, myCardInventory) {
       chip.textContent = "D";
       avatarWrap.appendChild(chip);
     }
-    if (p.id === you) {
-      const invBadges = buildSeatInventoryBadges(myCardInventory, state);
-      if (invBadges) avatarWrap.appendChild(invBadges);
-    }
     // 상대 카드는 뒷면(?) 상태일 땐 굳이 보여주지 않고, 쇼다운으로 실제 카드가 공개됐을 때만 표시한다.
     // 좌석 하단(이름/칩/배지 아래)이 아니라 프로필 사진 바로 옆에 붙여서, 좌석이 테이블 중앙(보드) 쪽에
     // 가깝게 배치되더라도 커뮤니티 카드 쪽으로 밀려 겹치지 않게 한다.
@@ -815,6 +812,11 @@ function renderSeats(state, you, verifiedMap, myCardInventory) {
       avatarWrap.appendChild(hc);
     }
     seat.appendChild(avatarWrap);
+
+    if (p.id === you) {
+      myAvatarLeft = left;
+      myAvatarTop = top;
+    }
 
     const name = document.createElement("div");
     name.className = "name";
@@ -850,6 +852,21 @@ function renderSeats(state, you, verifiedMap, myCardInventory) {
 
     // 내 카드는 화면 하단에 크게 별도로 보여주므로 좌석 안에서는 중복 표시하지 않는다.
     seatsEl.appendChild(seat);
+  }
+
+  // 보유 기프트 배지: #seats(z-index로 스태킹 컨텍스트가 낮게 눌려있음) 안이 아니라
+  // #table-felt에 바로 붙여서, 다른 좌석/보드 레이어의 z-index 캡핑에 영향받지 않고
+  // 항상 내 프로필 사진 바로 위에 보이게 한다.
+  const feltEl = document.getElementById("table-felt");
+  const existingInv = feltEl && feltEl.querySelector(".seat-inventory");
+  if (existingInv) existingInv.remove();
+  if (feltEl) {
+    const invBadges = buildSeatInventoryBadges(myCardInventory, state);
+    if (invBadges) {
+      invBadges.style.left = myAvatarLeft + "%";
+      invBadges.style.top = myAvatarTop + "%";
+      feltEl.appendChild(invBadges);
+    }
   }
 }
 
