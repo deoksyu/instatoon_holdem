@@ -256,8 +256,13 @@ input:focus { outline: 2px solid #ffcc4d; }
   70% { opacity: 1; }
   100% { left: 50%; top: 50%; opacity: 0; transform: translate(-50%, -50%) scale(0.7) rotate(180deg); }
 }
-.seat .hole-cards { display: flex; gap: 3px; justify-content: center; margin-top: 4px; }
-.seat .hole-cards .card-chip { width: 34px; height: 48px; font-size: 11px; }
+/* 상대 쇼다운 공개 카드: 좌석 하단이 아니라 프로필 사진 바로 옆(오른쪽)에 붙여서,
+   좌석이 테이블 중앙(커뮤니티 카드)에 가깝게 배치돼도 보드 쪽으로 밀려 겹치지 않게 한다. */
+.avatar-hole-cards {
+  position: absolute; top: 50%; left: 100%; transform: translateY(-50%);
+  margin-left: 6px; display: flex; gap: 3px; z-index: 12;
+}
+.avatar-hole-cards .card-chip { width: 34px; height: 48px; font-size: 11px; }
 .seat .status-tag {
   font-size: 10px; margin-top: 2px; color: #ff8a8a; font-weight: 700;
 }

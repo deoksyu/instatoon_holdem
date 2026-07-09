@@ -805,6 +805,15 @@ function renderSeats(state, you, verifiedMap, myCardInventory) {
       const invBadges = buildSeatInventoryBadges(myCardInventory, state);
       if (invBadges) avatarWrap.appendChild(invBadges);
     }
+    // 상대 카드는 뒷면(?) 상태일 땐 굳이 보여주지 않고, 쇼다운으로 실제 카드가 공개됐을 때만 표시한다.
+    // 좌석 하단(이름/칩/배지 아래)이 아니라 프로필 사진 바로 옆에 붙여서, 좌석이 테이블 중앙(보드) 쪽에
+    // 가깝게 배치되더라도 커뮤니티 카드 쪽으로 밀려 겹치지 않게 한다.
+    if (p.id !== you && p.holeCards && p.holeCards.length && p.holeCards[0] !== "?") {
+      const hc = document.createElement("div");
+      hc.className = "avatar-hole-cards";
+      p.holeCards.forEach((c) => hc.appendChild(cardEl(c)));
+      avatarWrap.appendChild(hc);
+    }
     seat.appendChild(avatarWrap);
 
     const name = document.createElement("div");
@@ -840,14 +849,6 @@ function renderSeats(state, you, verifiedMap, myCardInventory) {
     }
 
     // 내 카드는 화면 하단에 크게 별도로 보여주므로 좌석 안에서는 중복 표시하지 않는다.
-    // 상대 카드는 뒷면(?) 상태일 땐 굳이 보여주지 않고, 쇼다운으로 실제 카드가 공개됐을 때만 표시한다.
-    if (p.id !== you && p.holeCards && p.holeCards.length && p.holeCards[0] !== "?") {
-      const hc = document.createElement("div");
-      hc.className = "hole-cards";
-      p.holeCards.forEach((c) => hc.appendChild(cardEl(c)));
-      seat.appendChild(hc);
-    }
-
     seatsEl.appendChild(seat);
   }
 }
