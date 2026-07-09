@@ -93,7 +93,7 @@ const CATALOG = {
 // 응원 수(count)에 따른 등급 뽑기.
 function rollRarity(cheerCount) {
   const count = Math.max(0, Math.floor(cheerCount));
-  if (count === 0) return weightedPick({ "꽝": 20, R: 60, SR: 19, SSR: 1 }); // 응원 0이어도 아주 낮은 확률로 SSR까지 노려볼 수 있게
+  if (count === 0) return weightedPick({ "꽝": 5, R: 85, SR: 19, SSR: 1 }); // 응원 0이어도 아주 낮은 확률로 SSR까지 노려볼 수 있게
   if (count === THRESHOLD) return "SSR";
   if (count > THRESHOLD) return "꽝";
 

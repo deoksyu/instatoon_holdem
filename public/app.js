@@ -40,6 +40,67 @@ function cardEl(card, opts = {}) {
   return div;
 }
 
+// ---------- 칩 그래픽 (숫자 대신 눈으로 비교 가능한 실물 칩 스택) ----------
+const CHIP_TIERS = [
+  { min: 5000, color: "#ffd447", ring: "#a8790a" },
+  { min: 1000, color: "#b06bff", ring: "#6b3fa0" },
+  { min: 500, color: "#ff5c5c", ring: "#a83030" },
+  { min: 100, color: "#4d9dff", ring: "#2b5fa0" },
+  { min: 0, color: "#e8e8e8", ring: "#999" },
+];
+function chipTierFor(amount) {
+  return CHIP_TIERS.find((t) => amount >= t.min) || CHIP_TIERS[CHIP_TIERS.length - 1];
+}
+
+// amount에 비례한 칩 스택(원판을 쌓은 그래픽) DOM을 만든다. maxAmount 기준 상대적 높이로 그려서
+// "누가 더 많이 가졌는지" 숫자 계산 없이 한눈에 비교 가능하게 한다.
+function chipStackEl(amount, maxAmount, opts = {}) {
+  const wrap = document.createElement("div");
+  wrap.className = "chip-stack" + (opts.small ? " small" : "");
+  if (!amount || amount <= 0) {
+    wrap.classList.add("empty");
+    if (opts.showLabel !== false) {
+      const label = document.createElement("div");
+      label.className = "chip-stack-label";
+      label.textContent = "0";
+      wrap.appendChild(label);
+    }
+    return wrap;
+  }
+  const ratio = maxAmount > 0 ? Math.max(0, Math.min(1, amount / maxAmount)) : 0;
+  const maxDiscs = opts.maxDiscs || (opts.small ? 6 : 10);
+  const discCount = Math.max(1, Math.round(ratio * maxDiscs));
+  const tier = chipTierFor(amount);
+  for (let i = 0; i < discCount; i++) {
+    const disc = document.createElement("div");
+    disc.className = "chip-disc";
+    disc.style.background = tier.color;
+    disc.style.borderColor = tier.ring;
+    disc.style.bottom = i * (opts.small ? 2 : 3) + "px";
+    wrap.appendChild(disc);
+  }
+  if (opts.showLabel !== false) {
+    const label = document.createElement("div");
+    label.className = "chip-stack-label";
+    label.textContent = amount.toLocaleString();
+    wrap.appendChild(label);
+  }
+  return wrap;
+}
+
+// 베팅/블라인드로 칩이 늘어난 순간, 좌석 위치(%)에서 팟 중앙(50%,50%)으로 칩이 날아가는 연출
+function spawnChipThrow(fromLeftPct, fromTopPct) {
+  const felt = document.getElementById("table-felt");
+  if (!felt) return;
+  const el = document.createElement("div");
+  el.className = "chip-throw";
+  el.style.setProperty("--from-left", fromLeftPct + "%");
+  el.style.setProperty("--from-top", fromTopPct + "%");
+  felt.appendChild(el);
+  el.addEventListener("animationend", () => el.remove());
+  setTimeout(() => el.remove(), 900); // 안전장치
+}
+
 // ---------- Home screen ----------
 const tabBtns = document.querySelectorAll(".tab-btn");
 tabBtns.forEach((btn) => {
@@ -251,6 +312,12 @@ function render(msg) {
     }
   }
   document.getElementById("pot-label").textContent = "Pot: " + state.pot.toLocaleString();
+  const potStackWrap = document.getElementById("pot-chip-stack");
+  potStackWrap.innerHTML = "";
+  if (state.pot > 0) {
+    const scaleMax = Math.max(1, state.pot, ...state.players.map((p) => p.chips || 0));
+    potStackWrap.appendChild(chipStackEl(state.pot, scaleMax, { maxDiscs: 12, showLabel: false }));
+  }
   const streetNames = {
     waiting: "대기 중", preflop: "프리플랍", flop: "플랍", turn: "턴", river: "리버", showdown: "쇼다운",
   };
@@ -582,6 +649,9 @@ function renderNotifications(msg) {
   }
 }
 
+let prevBetThisStreet = {};
+let prevHandNumberForChips = null;
+
 function renderSeats(state, you, verifiedMap) {
   const seatsEl = document.getElementById("seats");
   seatsEl.innerHTML = "";
@@ -589,6 +659,15 @@ function renderSeats(state, you, verifiedMap) {
   const n = players.length;
   if (n === 0) return;
   const seatVerifiedMap = verifiedMap || {};
+
+  // 새 핸드가 시작되면 베팅 증가분 추적을 리셋 (칩 던지기 애니메이션 오작동 방지)
+  if (state.handNumber !== prevHandNumberForChips) {
+    prevBetThisStreet = {};
+    prevHandNumberForChips = state.handNumber;
+  }
+
+  // 좌석/팟 칩 그래픽을 같은 기준으로 비교할 수 있도록 공통 최댓값 사용
+  const chipScaleMax = Math.max(1, state.pot || 0, ...players.map((pp) => pp.chips || 0));
 
   let myIndex = players.findIndex((p) => p.id === you);
   if (myIndex === -1) myIndex = 0;
@@ -600,6 +679,12 @@ function renderSeats(state, you, verifiedMap) {
     const rad = (angleDeg * Math.PI) / 180;
     const left = 50 + rx * Math.cos(rad);
     const top = 50 + ry * Math.sin(rad);
+
+    const prevBet = prevBetThisStreet[p.id] || 0;
+    if (p.betThisStreet > prevBet) {
+      spawnChipThrow(left, top);
+    }
+    prevBetThisStreet[p.id] = p.betThisStreet;
 
     const seat = document.createElement("div");
     seat.className = "seat";
@@ -630,16 +715,13 @@ function renderSeats(state, you, verifiedMap) {
     name.innerHTML = escapeHtml(p.name) + verifiedBadge(seatVerifiedMap[p.id]) + (p.id === you ? " (나)" : "");
     seat.appendChild(name);
 
-    const chips = document.createElement("div");
-    chips.className = "chips";
-    chips.textContent = "칩 " + p.chips.toLocaleString();
-    seat.appendChild(chips);
+    seat.appendChild(chipStackEl(p.chips, chipScaleMax));
 
     if (p.betThisStreet > 0) {
-      const bet = document.createElement("div");
-      bet.className = "bet";
-      bet.textContent = "베팅 " + p.betThisStreet.toLocaleString();
-      seat.appendChild(bet);
+      const betWrap = document.createElement("div");
+      betWrap.className = "bet";
+      betWrap.appendChild(chipStackEl(p.betThisStreet, chipScaleMax, { small: true }));
+      seat.appendChild(betWrap);
     }
 
     if (p.sittingOut) {
