@@ -241,16 +241,27 @@ function render(msg) {
 }
 
 function renderPendingPanel(msg) {
-  const overlay = document.getElementById("pending-modal-overlay");
+  const section = document.getElementById("pending-section");
   const list = document.getElementById("pending-list");
+  const emptyLabel = document.getElementById("pending-empty");
+  const badge = document.getElementById("pending-count-badge");
   const reqs = msg.pendingRequests || [];
-  if (!msg.isHost || reqs.length === 0) {
-    overlay.classList.add("hidden");
+
+  if (!msg.isHost) {
+    section.classList.add("hidden");
     list.innerHTML = "";
     return;
   }
-  overlay.classList.remove("hidden");
+
+  section.classList.remove("hidden");
+  badge.textContent = reqs.length > 0 ? reqs.length : "";
   list.innerHTML = "";
+
+  if (reqs.length === 0) {
+    emptyLabel.classList.remove("hidden");
+    return;
+  }
+  emptyLabel.classList.add("hidden");
   for (const r of reqs) {
     const item = document.createElement("div");
     item.className = "pending-item";
