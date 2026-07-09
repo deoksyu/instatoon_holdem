@@ -22,6 +22,11 @@ function escapeHtml(str) {
 
 const SUIT = { c: "♣", d: "♦", h: "♥", s: "♠" };
 function isRed(suit) { return suit === "d" || suit === "h"; }
+function rankLabel(rank) { return rank === "T" ? "10" : rank; }
+function cardLabel(card) {
+  if (!card || card === "?") return "?";
+  return rankLabel(card.slice(0, -1)) + SUIT[card.slice(-1)];
+}
 
 function cardEl(card, opts = {}) {
   const div = document.createElement("div");
@@ -29,10 +34,9 @@ function cardEl(card, opts = {}) {
     div.className = "card-chip back";
     return div;
   }
-  const rank = card.slice(0, -1);
   const suit = card.slice(-1);
   div.className = "card-chip " + (isRed(suit) ? "red" : "black");
-  div.textContent = rank + SUIT[suit];
+  div.textContent = cardLabel(card);
   return div;
 }
 
@@ -192,7 +196,7 @@ socket.on("room:state", (msg) => {
   render(msg);
 });
 
-let lastCardDrawAt = 0;
+let lastGiftBatchAt = 0;
 let lastAnnouncementAt = 0;
 
 function render(msg) {
@@ -449,13 +453,76 @@ function showFanToast(text) {
 
 let lastPeekAt = 0;
 
+// ---------- 기프트 획득 대형 연출 (유희왕 카드 소환 스타일) ----------
+let giftRevealQueue = [];
+let giftRevealShowing = false;
+let giftRevealTimer = null;
+
+function rarityClass(rarity) {
+  if (rarity === "SSR") return "ssr";
+  if (rarity === "SR") return "sr";
+  if (rarity === "R") return "r";
+  return "bust";
+}
+
+function queueGiftReveals(draws) {
+  giftRevealQueue.push(...draws);
+  if (!giftRevealShowing) showNextGiftReveal();
+}
+
+function showNextGiftReveal() {
+  const next = giftRevealQueue.shift();
+  if (!next) {
+    giftRevealShowing = false;
+    return;
+  }
+  giftRevealShowing = true;
+  const overlay = document.getElementById("gift-reveal-overlay");
+  const cardEl = document.getElementById("gift-reveal-card");
+  if (!overlay || !cardEl) { giftRevealShowing = false; return; }
+
+  cardEl.className = "gift-reveal-card rarity-" + rarityClass(next.card.rarity);
+  document.getElementById("grc-rarity").textContent = next.card.rarity;
+  document.getElementById("grc-emoji").textContent = next.card.emoji || "🎁";
+  document.getElementById("grc-name").textContent = next.card.name;
+  document.getElementById("grc-type").textContent =
+    next.card.type === "passive" ? "패시브" : next.card.type === "active" ? "액티브" : "";
+  document.getElementById("grc-desc").textContent = next.card.description || "";
+  document.getElementById("grc-street").textContent = `[${next.streetLabel}] 응원 ${next.cheerCountAtDraw}회 달성`;
+
+  overlay.classList.remove("hidden");
+  cardEl.classList.remove("grc-anim");
+  void cardEl.offsetWidth; // reflow to restart animation
+  cardEl.classList.add("grc-anim");
+
+  clearTimeout(giftRevealTimer);
+  giftRevealTimer = setTimeout(dismissGiftReveal, 3200);
+}
+
+function dismissGiftReveal() {
+  clearTimeout(giftRevealTimer);
+  const overlay = document.getElementById("gift-reveal-overlay");
+  if (overlay) overlay.classList.add("hidden");
+  setTimeout(showNextGiftReveal, 250);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const overlay = document.getElementById("gift-reveal-overlay");
+  if (overlay) overlay.addEventListener("click", dismissGiftReveal);
+});
+
 function renderNotifications(msg) {
-  if (msg.lastCardDraw && msg.lastCardDraw.at && msg.lastCardDraw.at > lastCardDrawAt) {
-    lastCardDrawAt = msg.lastCardDraw.at;
-    const d = msg.lastCardDraw;
-    if (d.card.rarity !== "꽝") {
-      showFanToast(`${d.card.emoji} ${d.playerName}님이 응원 ${d.cheerCountAtDraw}회 받고 [${d.card.rarity}] ${d.card.name} 기프트 획득!`);
+  if (msg.lastGiftBatch && msg.lastGiftBatch.at && msg.lastGiftBatch.at > lastGiftBatchAt) {
+    lastGiftBatchAt = msg.lastGiftBatch.at;
+    const myDraws = [];
+    for (const d of msg.lastGiftBatch.draws) {
+      if (d.playerId === msg.you) {
+        myDraws.push(d);
+      } else if (d.card.rarity !== "꽝") {
+        showFanToast(`${d.card.emoji} ${d.playerName}님이 [${d.streetLabel}] 응원 ${d.cheerCountAtDraw}회 받고 [${d.card.rarity}] ${d.card.name} 기프트 획득!`);
+      }
     }
+    if (myDraws.length > 0) queueGiftReveals(myDraws);
   }
   if (msg.lastAnnouncement && msg.lastAnnouncement.at && msg.lastAnnouncement.at > lastAnnouncementAt) {
     lastAnnouncementAt = msg.lastAnnouncement.at;
@@ -472,7 +539,7 @@ function renderNotifications(msg) {
   }
   if (msg.myPeek && msg.myPeek.at && msg.myPeek.at > lastPeekAt) {
     lastPeekAt = msg.myPeek.at;
-    showFanToast(`🔍 [필살기 스크롤] ${msg.myPeek.targetName}님의 카드 한 장: ${msg.myPeek.card}`);
+    showFanToast(`🔍 [필살기 스크롤] ${msg.myPeek.targetName}님의 카드 한 장: ${cardLabel(msg.myPeek.card)}`);
   }
 }
 

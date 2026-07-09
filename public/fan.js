@@ -14,13 +14,29 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+const SUIT = { c: "♣", d: "♦", h: "♥", s: "♠" };
+function isRed(suit) { return suit === "d" || suit === "h"; }
+function rankLabel(rank) { return rank === "T" ? "10" : rank; }
+function cardEl(card) {
+  const div = document.createElement("div");
+  if (!card || card === "?") {
+    div.className = "card-chip back";
+    return div;
+  }
+  const rank = card.slice(0, -1);
+  const suit = card.slice(-1);
+  div.className = "card-chip " + (isRed(suit) ? "red" : "black");
+  div.textContent = rankLabel(rank) + SUIT[suit];
+  return div;
+}
+
 const FALLBACK_AVATAR =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><rect width="60" height="60" fill="%23333"/><text x="50%" y="55%" font-size="28" text-anchor="middle" fill="%23999">?</text></svg>'
   );
 
-let lastCardDrawAt = 0;
+let lastGiftBatchAt = 0;
 let lastAnnouncementAt = 0;
 
 function showFanError(msg) {
@@ -65,6 +81,18 @@ function render(msg) {
 
   document.getElementById("fan-board-info").textContent =
     `Pot: ${state.pot.toLocaleString()} · ${state.street === "waiting" ? "게임 대기 중" : state.street === "showdown" ? "쇼다운" : "진행 중"} · 관전 ${msg.fanCount}명`;
+
+  const commEl = document.getElementById("fan-community-cards");
+  commEl.innerHTML = "";
+  const shownCards = state.communityCards || [];
+  for (let i = 0; i < 5; i++) {
+    if (i < shownCards.length) commEl.appendChild(cardEl(shownCards[i]));
+    else {
+      const d = document.createElement("div");
+      d.className = "card-chip empty";
+      commEl.appendChild(d);
+    }
+  }
 
   const listEl = document.getElementById("fan-player-list");
   listEl.innerHTML = "";
@@ -124,11 +152,12 @@ function render(msg) {
     listEl.appendChild(card);
   }
 
-  if (msg.lastCardDraw && msg.lastCardDraw.at && msg.lastCardDraw.at > lastCardDrawAt) {
-    lastCardDrawAt = msg.lastCardDraw.at;
-    const d = msg.lastCardDraw;
-    if (d.card.rarity !== "꽝") {
-      showToast(`${d.card.emoji} ${d.playerName}님이 응원 ${d.cheerCountAtDraw}회 받고 [${d.card.rarity}] ${d.card.name} 기프트 획득!`);
+  if (msg.lastGiftBatch && msg.lastGiftBatch.at && msg.lastGiftBatch.at > lastGiftBatchAt) {
+    lastGiftBatchAt = msg.lastGiftBatch.at;
+    for (const d of msg.lastGiftBatch.draws) {
+      if (d.card.rarity !== "꽝") {
+        showToast(`${d.card.emoji} ${d.playerName}님이 [${d.streetLabel}] 응원 ${d.cheerCountAtDraw}회 받고 [${d.card.rarity}] ${d.card.name} 기프트 획득!`);
+      }
     }
   }
   if (msg.lastAnnouncement && msg.lastAnnouncement.at && msg.lastAnnouncement.at > lastAnnouncementAt) {

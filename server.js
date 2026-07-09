@@ -45,7 +45,7 @@ app.get("/api/ig-preview", async (req, res) => {
  *   startingChipsMap / posts / bounties / bountyEarnings / rebuyUsed / verified: Map<playerId, ...>
  *   eliminated: Set<playerId>
  *   cheerCounts / cardInventory: Map<playerId, ...>
- *   lastCurrentPlayerId, lastResolvedHandNumber, lastCardDraw, lastAnnouncement
+ *   lastCommunityCount, lastResolvedHandNumber, lastGiftBatch, lastAnnouncement
  * }
  */
 const rooms = new Map();
@@ -79,9 +79,9 @@ function newRoom(table) {
     doubleWinFlags: new Set(),   // 트로피 사용자 - 이번 핸드 승리시 2배
     privatePeeks: new Map(),     // 필살기 스크롤 결과 (본인에게만 보임)
     leaveScheduled: new Set(),   // 이번 핸드 끝나고 퇴장 예약한 플레이어
-    lastCurrentPlayerId: null,
+    lastCommunityCount: 0,
     lastResolvedHandNumber: 0,
-    lastCardDraw: null,
+    lastGiftBatch: null,
     lastAnnouncement: null,
   };
 }
@@ -109,33 +109,53 @@ function isRebuyEligible(room, playerId) {
   return room.posts.get(playerId) === minPosts && !room.rebuyUsed.get(playerId);
 }
 
-// 매 액션/핸드시작 이후 호출: 턴이 바뀌었으면 새 현재 플레이어에게 응원카드 드로우
-function maybeDrawCheerCard(room) {
+// 커뮤니티 카드 공개 시점(3장=플랍/4장=턴/5장=리버)마다 그때 살아있는(폴드X, 관전X) 전원에게
+// 동시에 기프트 지급. 응원 기준은 해당 공개 직전까지 각자 누적된 응원 수.
+// 올인 런아웃처럼 한 번의 처리로 여러 스트릿이 한꺼번에 넘어가는 경우, 넘어간 체크포인트 수만큼
+// (최대 3회) 모두 지급하고 하나의 배치로 묶어 클라이언트에 전달한다.
+const STREET_LABELS = { 3: "플랍", 4: "턴", 5: "리버" };
+
+function drawGiftsForCommunityReveal(room) {
   const table = room.table;
-  const curId = table.currentPlayer()?.id || null;
-  if (curId && curId !== room.lastCurrentPlayerId) {
-    const rawCount = room.cheerCounts.get(curId) || 0;
-    // 패시브 보정: 화이팅 부적(+2), 팬미팅 초대장(+5) - 중첩 가능
-    const boosted =
-      rawCount +
-      countPassive(room, curId, "cheer_boost_2") * 2 +
-      countPassive(room, curId, "cheer_boost_5") * 5;
-    const card = drawCard(boosted);
-    card.cheerCountAtDraw = rawCount; // 표시용은 실제 응원 수 기준
-    room.cheerCounts.set(curId, 0);
-    const inv = room.cardInventory.get(curId) || [];
-    inv.push(card);
-    room.cardInventory.set(curId, inv);
-    room.lastCardDraw = {
-      playerId: curId,
-      playerName: table.getPlayer(curId)?.name,
-      card,
-      cheerCountAtDraw: rawCount,
-      boostedCount: boosted,
-      at: Date.now(),
-    };
+  const count = table.communityCards.length;
+  if (count < room.lastCommunityCount) {
+    // 새 핸드 시작 등으로 카드 수가 줄어든 경우 - 카운터만 리셋
+    room.lastCommunityCount = count;
+    return;
   }
-  room.lastCurrentPlayerId = curId;
+  const checkpoints = [3, 4, 5].filter((c) => c > room.lastCommunityCount && c <= count);
+  room.lastCommunityCount = count;
+  if (checkpoints.length === 0) return;
+
+  const allDraws = [];
+  for (const checkpoint of checkpoints) {
+    const eligible = table.players.filter((p) => !p.folded && !p.sittingOut);
+    for (const p of eligible) {
+      const rawCount = room.cheerCounts.get(p.id) || 0;
+      // 패시브 보정: 화이팅 부적(+2), 팬미팅 초대장(+5) - 중첩 가능
+      const boosted =
+        rawCount +
+        countPassive(room, p.id, "cheer_boost_2") * 2 +
+        countPassive(room, p.id, "cheer_boost_5") * 5;
+      const card = drawCard(boosted);
+      card.cheerCountAtDraw = rawCount; // 표시용은 실제 응원 수 기준
+      room.cheerCounts.set(p.id, 0);
+      const inv = room.cardInventory.get(p.id) || [];
+      inv.push(card);
+      room.cardInventory.set(p.id, inv);
+      allDraws.push({
+        playerId: p.id,
+        playerName: p.name,
+        card,
+        cheerCountAtDraw: rawCount,
+        boostedCount: boosted,
+        streetLabel: STREET_LABELS[checkpoint],
+      });
+    }
+  }
+  if (allDraws.length > 0) {
+    room.lastGiftBatch = { draws: allDraws, at: Date.now() };
+  }
 }
 
 // 핸드가 쇼다운/폴드승리로 끝났을 때 1회만 호출: 트로피 정산 + 바운티 정산 + 무료 리바인/부활 처리
@@ -340,7 +360,7 @@ function processScheduledLeaves(room) {
 }
 
 function afterTableChange(room) {
-  maybeDrawCheerCard(room);
+  drawGiftsForCommunityReveal(room);
   resolveHandEnd(room);
   processScheduledLeaves(room);
 }
@@ -383,7 +403,7 @@ function broadcastState(roomCode) {
     fanNames,
     fanCount: room.fans.size,
     rebuyInfo,
-    lastCardDraw: room.lastCardDraw,
+    lastGiftBatch: room.lastGiftBatch,
     lastAnnouncement: room.lastAnnouncement,
     cheerThreshold: 21,
     maxPlayers: MAX_PLAYERS,
@@ -566,6 +586,7 @@ io.on("connection", (socket) => {
     if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 시작할 수 있습니다." });
     try {
       room.table.startHand();
+      room.lastCommunityCount = 0;
       applyBlindExemptions(room);
       afterTableChange(room);
       cb?.({ ok: true });
@@ -596,6 +617,7 @@ io.on("connection", (socket) => {
     if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 다음 핸드를 시작할 수 있습니다." });
     try {
       room.table.startHand();
+      room.lastCommunityCount = 0;
       applyBlindExemptions(room);
       afterTableChange(room);
       cb?.({ ok: true });
@@ -709,7 +731,7 @@ module.exports = {
   registerPlayerMeta,
   countPassive,
   isRebuyEligible,
-  maybeDrawCheerCard,
+  drawGiftsForCommunityReveal,
   resolveHandEnd,
   applyBlindExemptions,
   applyActiveGift,

@@ -243,3 +243,67 @@ input:focus { outline: 2px solid #ffcc4d; }
   background: #2a3d2a; color: #9be6b8; cursor: pointer; margin-left: 8px; position: relative;
 }
 .btn-approve-open:hover { background: #33472f; }
+
+/* ---- 기프트 획득 대형 연출 (유희왕 카드 소환 스타일, 이미지는 추후 교체 예정) ---- */
+.gift-reveal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.78);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; cursor: pointer;
+  backdrop-filter: blur(2px);
+}
+.gift-reveal-card {
+  position: relative;
+  width: 260px; min-height: 380px;
+  border-radius: 18px;
+  padding: 22px 18px 18px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  background: linear-gradient(160deg, #211d33 0%, #16131f 70%);
+  border: 3px solid var(--grc-color, #ffd447);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 0 40px var(--grc-glow, rgba(255,212,71,0.55));
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.2) rotate(-25deg);
+}
+.gift-reveal-card.grc-anim {
+  animation: grc-summon 0.65s cubic-bezier(0.2, 1.4, 0.4, 1) forwards,
+             grc-pulse 1.6s ease-in-out 0.65s infinite;
+}
+@keyframes grc-summon {
+  0%   { opacity: 0; transform: scale(0.2) rotate(-25deg); }
+  60%  { opacity: 1; transform: scale(1.08) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes grc-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 0 40px var(--grc-glow, rgba(255,212,71,0.55)); }
+  50%      { box-shadow: 0 0 0 1px rgba(255,255,255,0.1) inset, 0 0 65px var(--grc-glow, rgba(255,212,71,0.85)); }
+}
+.gift-reveal-card.rarity-ssr { --grc-color: #ffd447; --grc-glow: rgba(255,212,71,0.6); }
+.gift-reveal-card.rarity-sr  { --grc-color: #b06bff; --grc-glow: rgba(176,107,255,0.55); }
+.gift-reveal-card.rarity-r   { --grc-color: #4d9dff; --grc-glow: rgba(77,157,255,0.5); }
+.gift-reveal-card.rarity-bust { --grc-color: #7a7f8c; --grc-glow: rgba(122,127,140,0.4); }
+
+.grc-shine {
+  position: absolute; top: -60%; left: -20%; width: 60%; height: 220%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent);
+  transform: rotate(20deg);
+  animation: grc-shine-sweep 2.4s ease-in-out 0.7s infinite;
+}
+@keyframes grc-shine-sweep {
+  0%   { left: -30%; }
+  50%  { left: 130%; }
+  100% { left: 130%; }
+}
+
+.grc-rarity {
+  font-size: 13px; font-weight: 900; letter-spacing: 2px; color: var(--grc-color, #ffd447);
+  margin-bottom: 6px;
+}
+.grc-emoji { font-size: 64px; margin: 10px 0 14px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5)); }
+.grc-name { font-size: 19px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+.grc-type {
+  font-size: 11px; font-weight: 700; color: #14161c; background: var(--grc-color, #ffd447);
+  display: inline-block; padding: 2px 10px; border-radius: 999px; margin-bottom: 10px;
+}
+.grc-desc { font-size: 12px; color: #cdd1da; line-height: 1.5; margin-bottom: 10px; }
+.grc-street { font-size: 11px; color: #9aa0ac; margin-top: auto; }
+.grc-hint { font-size: 10px; color: #5c616e; margin-top: 8px; }

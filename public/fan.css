@@ -43,3 +43,8 @@
   border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   max-width: 90vw; text-align: center; z-index: 50;
 }
+
+.fan-community-cards {
+  display: flex; justify-content: center; gap: 8px; padding: 4px 16px 14px;
+}
+.fan-community-cards .card-chip { width: 44px; height: 62px; font-size: 18px; }
