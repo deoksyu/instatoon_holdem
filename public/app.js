@@ -620,14 +620,45 @@ function renderMyGiftPanel(msg, state) {
     const slot = document.createElement("div");
     slot.className = "gift-slot";
     if (card) {
-      slot.classList.add("filled", "inv-card");
+      slot.classList.add("filled");
       slot.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
-      slot.textContent = card.emoji || "🎁";
-      const tip =
-        `[${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})` +
-        (card.description ? `
-${card.description}` : "");
-      slot.dataset.tooltip = tip;
+      const emojiEl = document.createElement("span");
+      emojiEl.className = "gift-emoji";
+      emojiEl.textContent = card.emoji || "🎁";
+      slot.appendChild(emojiEl);
+
+      // 마우스오버 시 뜨는 상세 툴팁: 희귀도는 해당 등급 색으로, 패시브/액티브 구분 라벨 포함
+      const tip = document.createElement("div");
+      tip.className = "gift-tooltip";
+      const rarityColor = RARITY_STYLE[card.rarity]?.bg || "#999";
+      const header = document.createElement("div");
+      header.className = "gt-header";
+      const rarityEl = document.createElement("span");
+      rarityEl.className = "gt-rarity";
+      rarityEl.style.color = rarityColor;
+      rarityEl.textContent = `[${card.rarity}]`;
+      header.appendChild(rarityEl);
+      const typeEl = document.createElement("span");
+      typeEl.className = "gt-type";
+      typeEl.textContent = card.type === "active" ? "액티브" : "패시브";
+      header.appendChild(typeEl);
+      tip.appendChild(header);
+      const nameEl = document.createElement("div");
+      nameEl.className = "gt-name";
+      nameEl.textContent = card.name;
+      tip.appendChild(nameEl);
+      const cheerEl = document.createElement("div");
+      cheerEl.className = "gt-cheer";
+      cheerEl.textContent = `응원 ${card.cheerCountAtDraw ?? 0}회 달성`;
+      tip.appendChild(cheerEl);
+      if (card.description) {
+        const descEl = document.createElement("div");
+        descEl.className = "gt-desc";
+        descEl.textContent = card.description;
+        tip.appendChild(descEl);
+      }
+      slot.appendChild(tip);
+
       if (card.type === "active") {
         slot.classList.add("usable");
         slot.addEventListener("click", () => useGift(card, state));
