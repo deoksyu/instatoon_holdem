@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io({ transports: ["websocket"] });
 
 const FALLBACK_AVATAR =
   "data:image/svg+xml;utf8," +
