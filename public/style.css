@@ -388,22 +388,24 @@ input:focus { outline: 2px solid #ffcc4d; }
 
 .player-count { font-size: 11px; color: #9aa0ac; margin-left: 4px; }
 
-/* 내 프로필 사진 위에 겹쳐서 보여주는 보유 기프트 배지 (화면 상단 별도 목록 대신).
-   #seats 내부(z-index로 스태킹 컨텍스트가 낮게 눌려있음)가 아니라 #table-felt에 직접 붙기 때문에,
-   그 캡핑의 영향을 받지 않도록 여기서 별도로 z-index를 준다.
-   left/top(%)은 JS에서 내 좌석과 같은 좌표로 인라인 지정, 아바타 위로 끌어올리는 건 transform으로. */
-.seat-inventory {
-  position: absolute; transform: translate(-50%, calc(-100% - 95px));
-  display: flex; gap: 4px; z-index: 30; flex-wrap: nowrap;
+/* 화면 우하단에 항상 떠있는 고정 인벤토리 패널: 반투명 사각형 안에 슬롯이 3칸으로 나뉘어 있고,
+   보유한 기프트가 있으면 각 칸에 썸네일(이모지)이 채워진다. viewport 기준 fixed라서
+   좌석/보드 레이어의 스태킹 컨텍스트나 테이블 크기와 무관하게 항상 같은 자리에 보인다. */
+.my-gift-panel {
+  position: fixed; right: 16px; bottom: 96px; z-index: 40;
+  display: flex; gap: 6px; padding: 8px;
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.5);
 }
-.seat-inv-chip {
-  width: 24px; height: 24px; border-radius: 50%; padding: 0;
+.gift-slot {
+  width: 42px; height: 42px; border-radius: 8px;
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.18);
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.6); border: 2px solid #fff;
-  cursor: default;
+  font-size: 20px; cursor: default;
 }
-.seat-inv-chip.usable { cursor: pointer; }
-.seat-inv-chip.usable:hover { transform: scale(1.15); }
+.gift-slot.filled { border-color: rgba(0,0,0,0.35); }
+.gift-slot.usable { cursor: pointer; }
+.gift-slot.usable:hover { transform: scale(1.1); }
 
 .btn-leave {
   border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700;

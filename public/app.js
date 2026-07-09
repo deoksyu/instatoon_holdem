@@ -407,11 +407,12 @@ function render(msg) {
 
   // 각 렌더 단계를 개별적으로 감싸서, 한 섹션에서 예외가 나도(예: 새 기능 버그)
   // 승인 패널 등 나머지 UI가 통째로 멈추지 않도록 방어한다.
-  safeRender("renderSeats", () => renderSeats(state, msg.you, msg.verified, msg.myCardInventory));
+  safeRender("renderSeats", () => renderSeats(state, msg.you, msg.verified));
   safeRender("renderMyHoleCards", () => renderMyHoleCards(state, msg.you, msg.myHandInfo));
   safeRender("renderResult", () => renderResult(state));
   safeRender("renderControls", () => renderControls(msg, state));
   safeRender("renderMyStatus", () => renderMyStatus(msg, state));
+  safeRender("renderMyGiftPanel", () => renderMyGiftPanel(msg, state));
   safeRender("renderNotifications", () => renderNotifications(msg));
   safeRender("renderPendingPanel", () => renderPendingPanel(msg));
 }
@@ -604,29 +605,36 @@ document.getElementById("btn-cancel-leave").addEventListener("click", (e) => {
   });
 });
 
-// 보유 중인 기프트를 좁은 원형 배지로 만들어 반환 (내 프로필 사진 위에 겹쳐 보여주기용).
+// 화면 우하단에 항상 떠있는 고정 인벤토리 패널: 반투명 사각형 안에 3칸으로 나뉜 슬롯,
+// 보유한 기프트가 있으면 각 슬롯에 썸네일(이모지)로 채워 넣는다. 슬롯 수는 최소 3개,
+// 그보다 많이 들고 있으면(드문 경우) 그만큼 슬롯을 늘려서 전부 보여준다.
 // 패시브는 눌러도 아무 일 없고(자동 적용), 액티브는 눌러서 바로 사용.
-// 화면 전체를 가로지르는 별도 목록 대신, 본인 아바타 위에만 붙기 때문에 다른 UI와 겹칠 일이 없다.
-function buildSeatInventoryBadges(inv, state) {
-  const filtered = (inv || []).filter((c) => c.rarity !== "꽝");
-  if (filtered.length === 0) return null;
-  const box = document.createElement("div");
-  box.className = "seat-inventory";
-  for (const card of filtered) {
-    const chip = document.createElement("div");
-    chip.className = "seat-inv-chip inv-card " + (card.type === "active" ? "active" : "passive");
-    chip.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
-    chip.textContent = card.emoji || "🎁";
-    const tip = `[${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})` + (card.description ? `
+function renderMyGiftPanel(msg, state) {
+  const panel = document.getElementById("my-gift-panel");
+  if (!panel) return;
+  panel.innerHTML = "";
+  const inv = (msg.myCardInventory || []).filter((c) => c.rarity !== "꽝");
+  const slotCount = Math.max(3, inv.length);
+  for (let i = 0; i < slotCount; i++) {
+    const card = inv[i];
+    const slot = document.createElement("div");
+    slot.className = "gift-slot";
+    if (card) {
+      slot.classList.add("filled", "inv-card");
+      slot.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
+      slot.textContent = card.emoji || "🎁";
+      const tip =
+        `[${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})` +
+        (card.description ? `
 ${card.description}` : "");
-    chip.dataset.tooltip = tip;
-    if (card.type === "active") {
-      chip.classList.add("usable");
-      chip.addEventListener("click", () => useGift(card, state));
+      slot.dataset.tooltip = tip;
+      if (card.type === "active") {
+        slot.classList.add("usable");
+        slot.addEventListener("click", () => useGift(card, state));
+      }
     }
-    box.appendChild(chip);
+    panel.appendChild(slot);
   }
-  return box;
 }
 
 function useGift(card, state) {
@@ -744,7 +752,7 @@ function renderNotifications(msg) {
 let prevBetThisStreet = {};
 let prevHandNumberForChips = null;
 
-function renderSeats(state, you, verifiedMap, myCardInventory) {
+function renderSeats(state, you, verifiedMap) {
   const seatsEl = document.getElementById("seats");
   seatsEl.innerHTML = "";
   const players = state.players;
@@ -765,7 +773,6 @@ function renderSeats(state, you, verifiedMap, myCardInventory) {
   if (myIndex === -1) myIndex = 0;
 
   const rx = 42, ry = 36; // ellipse radii in %
-  let myAvatarLeft = 50, myAvatarTop = 86;
   for (let i = 0; i < n; i++) {
     const p = players[(myIndex + i) % n];
     const angleDeg = 90 + i * (360 / n);
@@ -813,11 +820,6 @@ function renderSeats(state, you, verifiedMap, myCardInventory) {
     }
     seat.appendChild(avatarWrap);
 
-    if (p.id === you) {
-      myAvatarLeft = left;
-      myAvatarTop = top;
-    }
-
     const name = document.createElement("div");
     name.className = "name";
     name.innerHTML = escapeHtml(p.name) + verifiedBadge(seatVerifiedMap[p.id]) + (p.id === you ? " (나)" : "");
@@ -852,21 +854,6 @@ function renderSeats(state, you, verifiedMap, myCardInventory) {
 
     // 내 카드는 화면 하단에 크게 별도로 보여주므로 좌석 안에서는 중복 표시하지 않는다.
     seatsEl.appendChild(seat);
-  }
-
-  // 보유 기프트 배지: #seats(z-index로 스태킹 컨텍스트가 낮게 눌려있음) 안이 아니라
-  // #table-felt에 바로 붙여서, 다른 좌석/보드 레이어의 z-index 캡핑에 영향받지 않고
-  // 항상 내 프로필 사진 바로 위에 보이게 한다.
-  const feltEl = document.getElementById("table-felt");
-  const existingInv = feltEl && feltEl.querySelector(".seat-inventory");
-  if (existingInv) existingInv.remove();
-  if (feltEl) {
-    const invBadges = buildSeatInventoryBadges(myCardInventory, state);
-    if (invBadges) {
-      invBadges.style.left = myAvatarLeft + "%";
-      invBadges.style.top = myAvatarTop + "%";
-      feltEl.appendChild(invBadges);
-    }
   }
 }
 
