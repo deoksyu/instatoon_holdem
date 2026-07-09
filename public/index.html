@@ -57,13 +57,17 @@
   <div class="topbar">
     <div class="room-code">방 코드: <b id="room-code-label">-</b> <span id="player-count-label" class="player-count"></span></div>
     <div class="fan-link">응원 링크: <a id="fan-link" href="#" target="_blank">-</a> <button id="btn-copy-fan-link" class="btn-tiny">복사</button></div>
+    <button id="btn-pending-open" class="btn-approve-open">✅ 참가 승인 <span id="pending-count-badge" class="pending-count-badge hidden"></span></button>
     <button id="btn-leave-open" class="btn-leave">🚪 퇴장</button>
   </div>
 
-  <div id="pending-section" class="pending-section hidden">
-    <div class="pending-title">🚪 참가 승인 대기 <span id="pending-count-badge" class="pending-count-badge"></span></div>
-    <div id="pending-list" class="pending-list"></div>
-    <div id="pending-empty" class="pending-empty hidden">대기 중인 참가 신청이 없어요.</div>
+  <div id="pending-modal-overlay" class="pending-modal-overlay hidden">
+    <div class="pending-modal">
+      <div class="pending-title">🚪 참가 승인 대기</div>
+      <div id="pending-list" class="pending-list"></div>
+      <div id="pending-empty" class="pending-empty hidden">대기 중인 참가 신청이 없어요.</div>
+      <button id="btn-pending-close" class="btn-tiny" style="margin-top:12px;">닫기</button>
+    </div>
   </div>
 
   <div id="leave-modal-overlay" class="pending-modal-overlay hidden">

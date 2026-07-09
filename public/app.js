@@ -240,21 +240,34 @@ function render(msg) {
   renderPendingPanel(msg);
 }
 
+document.getElementById("btn-pending-open").addEventListener("click", () => {
+  document.getElementById("pending-modal-overlay").classList.remove("hidden");
+});
+document.getElementById("btn-pending-close").addEventListener("click", () => {
+  document.getElementById("pending-modal-overlay").classList.add("hidden");
+});
+
 function renderPendingPanel(msg) {
-  const section = document.getElementById("pending-section");
+  const openBtn = document.getElementById("btn-pending-open");
   const list = document.getElementById("pending-list");
   const emptyLabel = document.getElementById("pending-empty");
   const badge = document.getElementById("pending-count-badge");
   const reqs = msg.pendingRequests || [];
 
   if (!msg.isHost) {
-    section.classList.add("hidden");
+    openBtn.classList.add("hidden");
+    document.getElementById("pending-modal-overlay").classList.add("hidden");
     list.innerHTML = "";
     return;
   }
 
-  section.classList.remove("hidden");
-  badge.textContent = reqs.length > 0 ? reqs.length : "";
+  openBtn.classList.remove("hidden");
+  if (reqs.length > 0) {
+    badge.textContent = reqs.length;
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
   list.innerHTML = "";
 
   if (reqs.length === 0) {
