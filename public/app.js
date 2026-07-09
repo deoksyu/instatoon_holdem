@@ -56,15 +56,20 @@ function clearHomeError() {
   document.getElementById("home-error").classList.add("hidden");
 }
 
-async function previewProfile(igInputId, boxId) {
+function isTestName(name) {
+  return (name || "").trim().toLowerCase() === "test";
+}
+
+async function previewProfile(igInputId, boxId, nameInputId) {
   clearHomeError();
   const ig = document.getElementById(igInputId).value.trim();
+  const name = nameInputId ? document.getElementById(nameInputId).value.trim() : "";
   const box = document.getElementById(boxId);
-  if (!ig) { showHomeError("인스타그램 아이디를 입력해주세요."); return null; }
+  if (!ig && !isTestName(name)) { showHomeError("인스타그램 아이디를 입력해주세요. (테스트하려면 닉네임에 test 입력)"); return null; }
   box.classList.remove("hidden");
   box.innerHTML = "불러오는 중...";
   try {
-    const res = await fetch("/api/ig-preview?u=" + encodeURIComponent(ig));
+    const res = await fetch("/api/ig-preview?u=" + encodeURIComponent(ig) + "&name=" + encodeURIComponent(name));
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "조회 실패");
     box.innerHTML = "";
@@ -88,17 +93,17 @@ async function previewProfile(igInputId, boxId) {
 }
 
 document.getElementById("btn-preview-create").addEventListener("click", () =>
-  previewProfile("create-ig", "preview-create")
+  previewProfile("create-ig", "preview-create", "create-name")
 );
 document.getElementById("btn-preview-join").addEventListener("click", () =>
-  previewProfile("join-ig", "preview-join")
+  previewProfile("join-ig", "preview-join", "join-name")
 );
 
 document.getElementById("btn-create").addEventListener("click", () => {
   clearHomeError();
   const name = document.getElementById("create-name").value.trim();
   const ig = document.getElementById("create-ig").value.trim();
-  if (!ig) return showHomeError("인스타그램 아이디를 입력해주세요.");
+  if (!ig && !isTestName(name)) return showHomeError("인스타그램 아이디를 입력해주세요. (테스트하려면 닉네임에 test 입력)");
   socket.emit("room:create", { name, instagramUsername: ig }, (res) => {
     if (!res.ok) return showHomeError(res.error);
     enterTableScreen();
@@ -111,7 +116,7 @@ document.getElementById("btn-join").addEventListener("click", () => {
   const name = document.getElementById("join-name").value.trim();
   const ig = document.getElementById("join-ig").value.trim();
   if (!roomCode) return showHomeError("방 코드를 입력해주세요.");
-  if (!ig) return showHomeError("인스타그램 아이디를 입력해주세요.");
+  if (!ig && !isTestName(name)) return showHomeError("인스타그램 아이디를 입력해주세요. (테스트하려면 닉네임에 test 입력)");
   socket.emit("room:requestJoin", { roomCode, name, instagramUsername: ig }, (res) => {
     if (!res.ok) return showHomeError(res.error);
     enterPendingScreen(res.profile, res.startingChips);

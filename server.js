@@ -4,7 +4,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const { Table } = require("./game/pokerEngine");
-const { fetchInstagramProfile, calcStartingChips } = require("./game/instagram");
+const { resolveProfile, calcStartingChips } = require("./game/instagram");
 const { drawCard } = require("./game/cheerCards");
 
 const app = express();
@@ -21,9 +21,12 @@ const MAX_PLAYERS = 10; // 한 방 최대 동시 플레이어 수
 // ---- REST: 방 만들기 전 미리보기용 인스타 프로필 조회 ----
 app.get("/api/ig-preview", async (req, res) => {
   const username = (req.query.u || "").toString();
-  if (!username) return res.status(400).json({ error: "아이디를 입력해주세요." });
+  const name = (req.query.name || "").toString();
+  if (!username && name.trim().toLowerCase() !== "test") {
+    return res.status(400).json({ error: "아이디를 입력해주세요." });
+  }
   try {
-    const profile = await fetchInstagramProfile(username);
+    const profile = await resolveProfile(name, username);
     const startingChips = calcStartingChips(profile, CHIP_RULE);
     res.json({ profile, startingChips });
   } catch (e) {
@@ -406,7 +409,7 @@ function broadcastState(roomCode) {
 io.on("connection", (socket) => {
   socket.on("room:create", async ({ name, instagramUsername }, cb) => {
     try {
-      const profile = await fetchInstagramProfile(instagramUsername);
+      const profile = await resolveProfile(name, instagramUsername);
       const startingChips = calcStartingChips(profile, CHIP_RULE);
       const roomCode = genRoomCode();
       const table = new Table({ smallBlind: 10, bigBlind: 20 });
@@ -435,7 +438,7 @@ io.on("connection", (socket) => {
       const code = (roomCode || "").toUpperCase();
       const room = rooms.get(code);
       if (!room) return cb({ ok: false, error: "존재하지 않는 방 코드입니다." });
-      const profile = await fetchInstagramProfile(instagramUsername);
+      const profile = await resolveProfile(name, instagramUsername);
       const startingChips = calcStartingChips(profile, CHIP_RULE);
       room.pendingRequests.set(socket.id, {
         name: name || profile.displayName,

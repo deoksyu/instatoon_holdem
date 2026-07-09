@@ -88,4 +88,36 @@ function calcStartingChips(profile, opts = {}) {
   return base + bonus;
 }
 
-module.exports = { fetchInstagramProfile, calcStartingChips, extractUsername };
+
+// 테스트용: 닉네임을 "test"로 입력하면 인스타 계정 없이도 접속 가능하게 하는 가짜 프로필
+function isTestName(name) {
+  return (name || "").trim().toLowerCase() === "test";
+}
+
+function makeTestProfile(name) {
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return {
+    username: `test_${suffix}`,
+    displayName: name || "테스트유저",
+    followers: 1000,
+    posts: 50,
+    avatarUrl: null,
+    verified: false,
+    profileUrl: null,
+  };
+}
+
+// name이 "test"면 인스타 조회 없이 가짜 프로필을, 아니면 실제 인스타 프로필을 반환
+async function resolveProfile(name, instagramUsername) {
+  if (isTestName(name)) return makeTestProfile(name);
+  return fetchInstagramProfile(instagramUsername);
+}
+
+module.exports = {
+  fetchInstagramProfile,
+  calcStartingChips,
+  extractUsername,
+  isTestName,
+  makeTestProfile,
+  resolveProfile,
+};
