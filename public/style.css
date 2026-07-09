@@ -147,3 +147,35 @@ input:focus { outline: 2px solid #ffcc4d; }
   width: 100px; padding: 10px; border-radius: 10px; border: 1px solid #383c4a;
   background: #14161c; color: #fff; text-align: center;
 }
+
+/* ---- 응원/바운티/카드인벤토리 (플레이어 화면) ---- */
+.fan-link { font-size: 12px; color: #9aa0ac; }
+.fan-link a { color: #6cc0ff; }
+.btn-tiny {
+  padding: 3px 8px; border-radius: 6px; border: none; background: #2a2d3a; color: #ccc;
+  font-size: 11px; cursor: pointer; margin-left: 4px;
+}
+
+.my-status {
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+  padding: 8px 18px; background: #191b22; font-size: 12px; color: #9aa0ac;
+}
+.my-status .ms-item b { color: #ffcc4d; }
+.ms-tag {
+  background: #2a3d2a; color: #9be6b8; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;
+}
+
+.card-inventory {
+  display: flex; gap: 8px; flex-wrap: wrap; padding: 6px 18px; min-height: 0;
+}
+.inv-card {
+  display: flex; align-items: center; gap: 4px; padding: 5px 9px; border-radius: 8px;
+  font-size: 11px; font-weight: 700; color: #14161c;
+}
+
+.fan-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #1e2029; border: 1px solid #ffcc4d; color: #fff; padding: 12px 20px;
+  border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  max-width: 90vw; text-align: center; z-index: 50;
+}

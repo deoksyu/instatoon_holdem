@@ -143,8 +143,15 @@ socket.on("room:state", (msg) => {
   render(msg);
 });
 
+let lastCardDrawAt = 0;
+let lastAnnouncementAt = 0;
+
 function render(msg) {
   document.getElementById("room-code-label").textContent = msg.roomCode;
+  const fanLink = `${location.origin}/fan.html?room=${msg.roomCode}`;
+  const fanLinkEl = document.getElementById("fan-link");
+  fanLinkEl.textContent = fanLink;
+  fanLinkEl.href = fanLink;
   const { state } = msg;
 
   // community cards
@@ -168,6 +175,77 @@ function render(msg) {
   renderSeats(state, msg.you);
   renderResult(state);
   renderControls(msg, state);
+  renderMyStatus(msg, state);
+  renderCardInventory(msg);
+  renderNotifications(msg);
+}
+
+document.getElementById("btn-copy-fan-link").addEventListener("click", () => {
+  const link = document.getElementById("fan-link").href;
+  navigator.clipboard?.writeText(link).then(
+    () => alert("응원 링크가 복사됐어요!"),
+    () => {}
+  );
+});
+
+const RARITY_STYLE = {
+  SSR: { bg: "#ffd447" },
+  SR: { bg: "#b06bff" },
+  R: { bg: "#4d9dff" },
+  "꽝": { bg: "#7a7f8c" },
+};
+
+function renderMyStatus(msg, state) {
+  const box = document.getElementById("my-status");
+  const me = state.players.find((p) => p.id === msg.you);
+  if (!me) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  document.getElementById("ms-bounty").textContent = ((msg.bounties && msg.bounties[msg.you]) || 0).toLocaleString();
+  document.getElementById("ms-bounty-earned").textContent = ((msg.bountyEarnings && msg.bountyEarnings[msg.you]) || 0).toLocaleString();
+  document.getElementById("ms-cheer").textContent = (msg.cheerCounts && msg.cheerCounts[msg.you]) || 0;
+  const rebuy = msg.rebuyInfo && msg.rebuyInfo[msg.you];
+  document.getElementById("ms-rebuy-tag").classList.toggle("hidden", !(rebuy && rebuy.eligible));
+}
+
+function renderCardInventory(msg) {
+  const box = document.getElementById("card-inventory");
+  box.innerHTML = "";
+  const inv = msg.myCardInventory || [];
+  for (const card of inv) {
+    if (card.rarity === "꽝") continue;
+    const el = document.createElement("div");
+    el.className = "inv-card";
+    el.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
+    el.textContent = `${card.emoji} [${card.rarity}] ${card.name}`;
+    box.appendChild(el);
+  }
+}
+
+function showFanToast(text) {
+  const toast = document.getElementById("fan-toast");
+  toast.textContent = text;
+  toast.classList.remove("hidden");
+  clearTimeout(showFanToast._t);
+  showFanToast._t = setTimeout(() => toast.classList.add("hidden"), 3500);
+}
+
+function renderNotifications(msg) {
+  if (msg.lastCardDraw && msg.lastCardDraw.at && msg.lastCardDraw.at > lastCardDrawAt) {
+    lastCardDrawAt = msg.lastCardDraw.at;
+    const d = msg.lastCardDraw;
+    if (d.card.rarity !== "꽝") {
+      showFanToast(`${d.card.emoji} ${d.playerName}님이 [${d.card.rarity}] ${d.card.name} 카드 획득!`);
+    }
+  }
+  if (msg.lastAnnouncement && msg.lastAnnouncement.at && msg.lastAnnouncement.at > lastAnnouncementAt) {
+    lastAnnouncementAt = msg.lastAnnouncement.at;
+    const a = msg.lastAnnouncement;
+    if (a.type === "bounty") {
+      showFanToast(`💰 ${a.hunterName}님이 ${a.targetName}님을 파산시키고 현상금 ${a.amount.toLocaleString()} 획득!`);
+    } else if (a.type === "rebuy") {
+      showFanToast(`♻️ ${a.playerName}님이 무료 리바인으로 부활! (${a.amount.toLocaleString()} 칩)`);
+    }
+  }
 }
 
 function renderSeats(state, you) {

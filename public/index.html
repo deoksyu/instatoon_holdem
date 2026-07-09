@@ -47,8 +47,16 @@
 <div id="screen-table" class="screen hidden">
   <div class="topbar">
     <div class="room-code">방 코드: <b id="room-code-label">-</b></div>
-    <div class="rule-label">시작칩 = 1000 + 게시물수×50 (최대 +5000)</div>
+    <div class="fan-link">응원 링크: <a id="fan-link" href="#" target="_blank">-</a> <button id="btn-copy-fan-link" class="btn-tiny">복사</button></div>
   </div>
+
+  <div id="my-status" class="my-status hidden">
+    <div class="ms-item">현상금 <b id="ms-bounty">0</b></div>
+    <div class="ms-item">사냥 획득 <b id="ms-bounty-earned">0</b></div>
+    <div class="ms-item">응원 <b id="ms-cheer">0</b>/21</div>
+    <div id="ms-rebuy-tag" class="ms-tag hidden">🔄 무료 리바인 보유</div>
+  </div>
+  <div id="card-inventory" class="card-inventory"></div>
 
   <div id="table-felt" class="table-felt">
     <div class="board-area">
@@ -77,6 +85,8 @@
     <div id="waiting-label" class="waiting-label hidden">상대방 차례를 기다리는 중...</div>
   </div>
 </div>
+
+<div id="fan-toast" class="fan-toast hidden"></div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="app.js"></script>

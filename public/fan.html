@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>인스타툰 홀덤 - 응원하기</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="fan.css" />
+</head>
+<body>
+
+<div id="screen-fan-home" class="screen">
+  <div class="card home-card">
+    <h1>📣 응원하러 가기</h1>
+    <p class="subtitle">게임엔 참여할 수 없지만, 응원으로 아이템 카드를 만들어줄 수 있어요</p>
+
+    <label>방 코드</label>
+    <input id="fan-code" placeholder="예: AB12" maxlength="4" style="text-transform:uppercase" />
+    <label>닉네임 (선택)</label>
+    <input id="fan-name" placeholder="예: 익명의 팬" />
+    <button id="btn-fan-join" class="btn-primary">응원 참가하기</button>
+    <p id="fan-error" class="error hidden"></p>
+  </div>
+</div>
+
+<div id="screen-fan-watch" class="screen hidden">
+  <div class="topbar">
+    <div class="room-code">방 코드: <b id="fan-room-code-label">-</b></div>
+    <div class="rule-label">응원을 정확히 21번 받으면 SSR 확정, 넘으면 꽝!</div>
+  </div>
+
+  <div id="fan-board-info" class="fan-board-info"></div>
+
+  <div id="fan-player-list" class="fan-player-list"></div>
+
+  <div id="fan-toast" class="fan-toast hidden"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="fan.js"></script>
+</body>
+</html>

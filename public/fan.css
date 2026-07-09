@@ -1,0 +1,37 @@
+.fan-board-info {
+  padding: 10px 16px; color: #9aa0ac; font-size: 13px; text-align: center;
+}
+.fan-player-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px; padding: 8px 16px 24px;
+}
+.fan-player-card {
+  background: #1e2029; border-radius: 14px; padding: 14px; text-align: center;
+  border: 2px solid transparent;
+}
+.fan-player-card.acting { border-color: #ffcc4d; }
+.fan-player-card.folded { opacity: 0.45; }
+.fan-player-card img {
+  width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #383c4a;
+}
+.fan-player-card .fp-name { font-weight: 700; margin-top: 8px; font-size: 14px; }
+.fan-player-card .fp-chips { color: #ffcc4d; font-size: 12px; margin-top: 2px; }
+.fan-player-card .fp-bounty { color: #ff8fd0; font-size: 11px; margin-top: 2px; }
+.fan-player-card .fp-cheer-bar {
+  margin-top: 10px; height: 8px; border-radius: 4px; background: #14161c; overflow: hidden;
+}
+.fan-player-card .fp-cheer-fill { height: 100%; background: linear-gradient(90deg, #4d9dff, #ffcc4d); }
+.fan-player-card .fp-cheer-count { font-size: 11px; color: #9aa0ac; margin-top: 4px; }
+.fan-player-card .btn-cheer {
+  margin-top: 10px; width: 100%; padding: 9px; border-radius: 8px; border: none;
+  background: #ff5c8a; color: #fff; font-weight: 700; cursor: pointer; font-size: 13px;
+}
+.fan-player-card .btn-cheer:active { transform: scale(0.96); }
+.fan-player-card .btn-cheer:disabled { background: #3a3d4a; color: #777; cursor: not-allowed; }
+
+.fan-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #1e2029; border: 1px solid #ffcc4d; color: #fff; padding: 12px 20px;
+  border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  max-width: 90vw; text-align: center; z-index: 50;
+}
