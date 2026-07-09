@@ -30,7 +30,8 @@ const CATALOG = {
 // - 1~20: 21에 가까워질수록 좋은 등급이 나올 확률이 커짐
 function rollRarity(cheerCount) {
   const count = Math.max(0, Math.floor(cheerCount));
-  if (count === 0) return "꽝";
+  // 응원이 하나도 없어도 언더독에게 공정한 기회를: R/SR/SSR 동률 33.3%
+  if (count === 0) return weightedPick({ R: 1, SR: 1, SSR: 1 });
   if (count === THRESHOLD) return "SSR";
   if (count > THRESHOLD) return "꽝";
 
