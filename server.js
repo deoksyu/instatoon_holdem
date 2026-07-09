@@ -207,11 +207,10 @@ function resolveHandEnd(room) {
     room.doubleWinFlags.clear();
   }
 
-  if (winners.length === 0) return;
-  const topWinner = winners.reduce((a, b) => (b.amount > a.amount ? b : a), winners[0]);
+  const topWinner = winners.length > 0 ? winners.reduce((a, b) => (b.amount > a.amount ? b : a), winners[0]) : null;
 
   for (const p of table.players) {
-    if (p.chips === 0 && p.totalBetInHand > 0 && !room.eliminated.has(p.id)) {
+    if (topWinner && p.chips === 0 && p.totalBetInHand > 0 && !room.eliminated.has(p.id)) {
       room.eliminated.add(p.id);
 
       const reviveGift = (room.cardInventory.get(p.id) || []).find(
@@ -245,7 +244,7 @@ function resolveHandEnd(room) {
         };
       } else {
         p.sittingOut = true;
-        if (topWinner.id !== p.id) {
+        if (topWinner && topWinner.id !== p.id) {
           const baseBounty = room.bounties.get(p.id) || 0;
           const bonusMult = 1 + countPassive(room, topWinner.id, "bounty_bonus_10pct") * 0.1;
           const bounty = Math.round(baseBounty * bonusMult);
@@ -264,6 +263,12 @@ function resolveHandEnd(room) {
         }
       }
     }
+  }
+
+  // 패가 까지는 순간(쇼다운/폴드승리로 핸드 종료) 미사용 기프트는 전부 소멸.
+  // 다음 핸드를 노리고 쌓아두지 못하게, 그 핸드 안에서 못 쓴 건 날아간다.
+  for (const p of table.players) {
+    room.cardInventory.set(p.id, []);
   }
 }
 
@@ -702,6 +707,9 @@ io.on("connection", (socket) => {
     const roomCode = roomOfSocket(socket.id);
     const room = rooms.get(roomCode);
     if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
+    if (room.table.street === "showdown") {
+      return cb?.({ ok: false, error: "핸드가 끝나서 이번 판 기프트를 사용할 수 없습니다." });
+    }
     const inv = room.cardInventory.get(socket.id) || [];
     const item = inv.find((c) => c.id === giftId && !c.used);
     if (!item) return cb?.({ ok: false, error: "사용할 수 없는 기프트입니다." });
