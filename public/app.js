@@ -114,6 +114,23 @@ document.getElementById("btn-create").addEventListener("click", () => {
   });
 });
 
+// 승인 대기 중 네트워크가 끊겼다 재연결되면(모바일/Render 특성상 종종 발생) 서버는 새 소켓ID를
+// 완전히 새 연결로 취급해 이전 참가 요청을 지워버린다. 재연결 시 같은 정보로 요청을 다시 제출해서
+// "이미 처리되었거나 존재하지 않는 요청입니다" 오류로 이어지는 유령 요청을 방지한다.
+let pendingJoinInfo = null; // { roomCode, name, instagramUsername }
+let hasConnectedOnce = false;
+
+socket.on("connect", () => {
+  if (hasConnectedOnce && pendingJoinInfo) {
+    socket.emit("room:requestJoin", pendingJoinInfo, (res) => {
+      if (res && res.ok) {
+        enterPendingScreen(res.profile, res.startingChips);
+      }
+    });
+  }
+  hasConnectedOnce = true;
+});
+
 document.getElementById("btn-join").addEventListener("click", () => {
   clearHomeError();
   const roomCode = document.getElementById("join-code").value.trim().toUpperCase();
@@ -121,8 +138,10 @@ document.getElementById("btn-join").addEventListener("click", () => {
   const ig = document.getElementById("join-ig").value.trim();
   if (!roomCode) return showHomeError("방 코드를 입력해주세요.");
   if (!ig && !isTestName(name)) return showHomeError("인스타그램 아이디를 입력해주세요. (테스트하려면 닉네임에 test 입력)");
-  socket.emit("room:requestJoin", { roomCode, name, instagramUsername: ig }, (res) => {
+  const payload = { roomCode, name, instagramUsername: ig };
+  socket.emit("room:requestJoin", payload, (res) => {
     if (!res.ok) return showHomeError(res.error);
+    pendingJoinInfo = payload;
     enterPendingScreen(res.profile, res.startingChips);
   });
 });
@@ -134,11 +153,13 @@ document.getElementById("btn-fan-go").addEventListener("click", () => {
 });
 
 socket.on("room:rejected", () => {
+  pendingJoinInfo = null;
   alert("아쉽게도 방장이 참가를 거절했어요.");
   location.reload();
 });
 
 function enterTableScreen() {
+  pendingJoinInfo = null; // 승인 완료 - 더 이상 재연결시 참가 요청을 재제출할 필요 없음
   document.getElementById("screen-home").classList.add("hidden");
   document.getElementById("screen-pending").classList.add("hidden");
   document.getElementById("screen-table").classList.remove("hidden");
@@ -235,13 +256,23 @@ function render(msg) {
   };
   document.getElementById("street-label").textContent = streetNames[state.street] || state.street;
 
-  renderSeats(state, msg.you, msg.verified);
-  renderResult(state);
-  renderControls(msg, state);
-  renderMyStatus(msg, state);
-  renderCardInventory(msg, state);
-  renderNotifications(msg);
-  renderPendingPanel(msg);
+  // 각 렌더 단계를 개별적으로 감싸서, 한 섹션에서 예외가 나도(예: 새 기능 버그)
+  // 승인 패널 등 나머지 UI가 통째로 멈추지 않도록 방어한다.
+  safeRender("renderSeats", () => renderSeats(state, msg.you, msg.verified));
+  safeRender("renderResult", () => renderResult(state));
+  safeRender("renderControls", () => renderControls(msg, state));
+  safeRender("renderMyStatus", () => renderMyStatus(msg, state));
+  safeRender("renderCardInventory", () => renderCardInventory(msg, state));
+  safeRender("renderNotifications", () => renderNotifications(msg));
+  safeRender("renderPendingPanel", () => renderPendingPanel(msg));
+}
+
+function safeRender(label, fn) {
+  try {
+    fn();
+  } catch (e) {
+    console.error(`[render:${label}]`, e);
+  }
 }
 
 document.getElementById("btn-pending-open").addEventListener("click", () => {

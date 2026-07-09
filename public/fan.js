@@ -50,12 +50,26 @@ if (params.get("room")) {
   document.getElementById("fan-code").value = params.get("room").toUpperCase();
 }
 
+// 재연결(네트워크 끊김 후 자동 재접속) 시 소켓ID가 바뀌면 서버의 관전자 목록에서 빠지므로
+// 응원 버튼이 조용히 먹통이 된다. 재연결되면 같은 방으로 다시 자동 참가한다.
+let fanJoinInfo = null; // { roomCode, name }
+let hasConnectedOnce = false;
+
+socket.on("connect", () => {
+  if (hasConnectedOnce && fanJoinInfo) {
+    socket.emit("fan:join", fanJoinInfo, () => {});
+  }
+  hasConnectedOnce = true;
+});
+
 document.getElementById("btn-fan-join").addEventListener("click", () => {
   const roomCode = document.getElementById("fan-code").value.trim().toUpperCase();
   const name = document.getElementById("fan-name").value.trim();
   if (!roomCode) return showFanError("방 코드를 입력해주세요.");
-  socket.emit("fan:join", { roomCode, name }, (res) => {
+  const payload = { roomCode, name };
+  socket.emit("fan:join", payload, (res) => {
     if (!res.ok) return showFanError(res.error);
+    fanJoinInfo = payload;
     document.getElementById("screen-fan-home").classList.add("hidden");
     document.getElementById("screen-fan-watch").classList.remove("hidden");
   });
