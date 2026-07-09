@@ -200,6 +200,8 @@ function render(msg) {
     enterTableScreen();
   }
   document.getElementById("room-code-label").textContent = msg.roomCode;
+  document.getElementById("player-count-label").textContent =
+    `(인원 ${state.players.length}/${msg.maxPlayers || 10})`;
   const fanLink = `${location.origin}/fan.html?room=${msg.roomCode}`;
   const fanLinkEl = document.getElementById("fan-link");
   fanLinkEl.textContent = fanLink;
@@ -264,7 +266,9 @@ function renderPendingPanel(msg) {
     const approveBtn = document.createElement("button");
     approveBtn.className = "btn-approve";
     approveBtn.textContent = "승인";
-    approveBtn.addEventListener("click", () => socket.emit("room:approve", { targetId: r.socketId }));
+    approveBtn.addEventListener("click", () => socket.emit("room:approve", { targetId: r.socketId }, (res) => {
+      if (res && !res.ok) alert(res.error);
+    }));
     const rejectBtn = document.createElement("button");
     rejectBtn.className = "btn-reject";
     rejectBtn.textContent = "거절";

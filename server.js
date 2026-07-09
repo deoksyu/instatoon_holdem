@@ -16,6 +16,7 @@ app.use(express.json());
 
 const CHIP_RULE = { base: 1000, perPost: 50, cap: 5000 };
 const BOUNTY_RATE = 0.2; // 시작 칩의 20%를 바운티로 건다
+const MAX_PLAYERS = 10; // 한 방 최대 동시 플레이어 수
 
 // ---- REST: 방 만들기 전 미리보기용 인스타 프로필 조회 ----
 app.get("/api/ig-preview", async (req, res) => {
@@ -212,6 +213,7 @@ function broadcastState(roomCode) {
     lastCardDraw: room.lastCardDraw,
     lastAnnouncement: room.lastAnnouncement,
     cheerThreshold: 21,
+    maxPlayers: MAX_PLAYERS,
   };
 
   for (const socketId of room.sockets.keys()) {
@@ -327,6 +329,9 @@ io.on("connection", (socket) => {
     if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 승인할 수 있습니다." });
     const req = room.pendingRequests.get(targetId);
     if (!req) return cb?.({ ok: false, error: "이미 처리되었거나 존재하지 않는 요청입니다." });
+    if (room.table.players.length >= MAX_PLAYERS) {
+      return cb?.({ ok: false, error: `방 정원(최대 ${MAX_PLAYERS}명)이 가득 찼습니다.` });
+    }
 
     room.table.addPlayer({
       id: targetId,

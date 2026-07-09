@@ -206,3 +206,5 @@ input:focus { outline: 2px solid #ffcc4d; }
 .verified-badge {
   display: inline-block; width: 13px; height: 13px; vertical-align: middle; margin-left: 2px;
 }
+
+.player-count { font-size: 11px; color: #9aa0ac; margin-left: 4px; }
