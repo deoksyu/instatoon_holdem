@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>인스타툰 홀덤</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="screen-home" class="screen">
+  <div class="card home-card">
+    <h1>🃏 인스타툰 홀덤</h1>
+    <p class="subtitle">인스타 게시물 수만큼 칩을 받고 시작하는 홀덤</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="create">방 만들기</button>
+      <button class="tab-btn" data-tab="join">방 참가하기</button>
+    </div>
+
+    <div id="tab-create" class="tab-panel active">
+      <label>닉네임 (선택)</label>
+      <input id="create-name" placeholder="예: 배덕슈" />
+      <label>인스타그램 아이디 또는 링크</label>
+      <input id="create-ig" placeholder="예: deoksyu_ 또는 https://instagram.com/deoksyu_" />
+      <button id="btn-preview-create" class="btn-secondary">프로필 미리보기</button>
+      <div id="preview-create" class="preview-box hidden"></div>
+      <button id="btn-create" class="btn-primary">방 만들기</button>
+    </div>
+
+    <div id="tab-join" class="tab-panel">
+      <label>방 코드</label>
+      <input id="join-code" placeholder="예: AB12" maxlength="4" style="text-transform:uppercase" />
+      <label>닉네임 (선택)</label>
+      <input id="join-name" placeholder="예: 배덕슈" />
+      <label>인스타그램 아이디 또는 링크</label>
+      <input id="join-ig" placeholder="예: deoksyu_ 또는 https://instagram.com/deoksyu_" />
+      <button id="btn-preview-join" class="btn-secondary">프로필 미리보기</button>
+      <div id="preview-join" class="preview-box hidden"></div>
+      <button id="btn-join" class="btn-primary">방 참가하기</button>
+    </div>
+
+    <p id="home-error" class="error hidden"></p>
+  </div>
+</div>
+
+<div id="screen-table" class="screen hidden">
+  <div class="topbar">
+    <div class="room-code">방 코드: <b id="room-code-label">-</b></div>
+    <div class="rule-label">시작칩 = 1000 + 게시물수×50 (최대 +5000)</div>
+  </div>
+
+  <div id="table-felt" class="table-felt">
+    <div class="board-area">
+      <div id="community-cards" class="cards"></div>
+      <div id="pot-label" class="pot-label">Pot: 0</div>
+      <div id="street-label" class="street-label"></div>
+    </div>
+    <div id="seats"></div>
+  </div>
+
+  <div id="result-banner" class="result-banner hidden"></div>
+
+  <div class="controls">
+    <div id="host-controls" class="host-controls hidden">
+      <button id="btn-start" class="btn-primary">게임 시작</button>
+      <button id="btn-next-hand" class="btn-primary hidden">다음 핸드</button>
+    </div>
+    <div id="action-controls" class="action-controls hidden">
+      <button id="act-fold" class="btn-action fold">폴드</button>
+      <button id="act-check" class="btn-action">체크</button>
+      <button id="act-call" class="btn-action">콜</button>
+      <input id="raise-amount" type="number" class="raise-input" />
+      <button id="act-raise" class="btn-action raise">레이즈</button>
+      <button id="act-allin" class="btn-action allin">올인</button>
+    </div>
+    <div id="waiting-label" class="waiting-label hidden">상대방 차례를 기다리는 중...</div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
