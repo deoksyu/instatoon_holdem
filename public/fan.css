@@ -47,4 +47,4 @@
 .fan-community-cards {
   display: flex; justify-content: center; gap: 8px; padding: 4px 16px 14px;
 }
-.fan-community-cards .card-chip { width: 44px; height: 62px; font-size: 18px; }
+.fan-community-cards .card-chip { width: 44px; height: 62px; font-size: 14px; }

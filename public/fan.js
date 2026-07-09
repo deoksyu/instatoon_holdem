@@ -17,6 +17,20 @@ function escapeHtml(str) {
 const SUIT = { c: "♣", d: "♦", h: "♥", s: "♠" };
 function isRed(suit) { return suit === "d" || suit === "h"; }
 function rankLabel(rank) { return rank === "T" ? "10" : rank; }
+
+// 실제 트럼프 카드처럼: 코너 인덱스 + 숫자카드는 정통 핍(pip) 배열, A/J/Q/K는 큰 글자+수트
+const PIP_LAYOUTS = {
+  "2": [[1, 0], [1, 4]],
+  "3": [[1, 0], [1, 2], [1, 4]],
+  "4": [[0, 0], [2, 0], [0, 4], [2, 4]],
+  "5": [[0, 0], [2, 0], [1, 2], [0, 4], [2, 4]],
+  "6": [[0, 0], [2, 0], [0, 2], [2, 2], [0, 4], [2, 4]],
+  "7": [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2], [0, 4], [2, 4]],
+  "8": [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2], [1, 3], [0, 4], [2, 4]],
+  "9": [[0, 0], [2, 0], [0, 1], [2, 1], [1, 2], [0, 3], [2, 3], [0, 4], [2, 4]],
+  "10": [[0, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 3], [1, 3], [2, 3], [0, 4], [2, 4]],
+};
+
 function cardEl(card) {
   const div = document.createElement("div");
   if (!card || card === "?") {
@@ -25,8 +39,43 @@ function cardEl(card) {
   }
   const rank = card.slice(0, -1);
   const suit = card.slice(-1);
-  div.className = "card-chip " + (isRed(suit) ? "red" : "black");
-  div.textContent = rankLabel(rank) + SUIT[suit];
+  const label = rankLabel(rank);
+  const suitSym = SUIT[suit];
+  div.className = "card-chip playing-card " + (isRed(suit) ? "red" : "black");
+
+  const cornerTL = document.createElement("div");
+  cornerTL.className = "pc-corner pc-corner-tl";
+  cornerTL.innerHTML = `<span class="pc-rank">${label}</span><span class="pc-suit">${suitSym}</span>`;
+  div.appendChild(cornerTL);
+
+  const cornerBR = document.createElement("div");
+  cornerBR.className = "pc-corner pc-corner-br";
+  cornerBR.innerHTML = `<span class="pc-rank">${label}</span><span class="pc-suit">${suitSym}</span>`;
+  div.appendChild(cornerBR);
+
+  if (rank === "A" || rank === "J" || rank === "Q" || rank === "K") {
+    const face = document.createElement("div");
+    face.className = "pc-face" + (rank === "A" ? "" : " pc-face-jqk");
+    face.innerHTML =
+      rank === "A"
+        ? `<span class="pc-face-suit pc-ace-suit">${suitSym}</span>`
+        : `<span class="pc-face-letter">${rank}</span><span class="pc-face-suit">${suitSym}</span>`;
+    div.appendChild(face);
+  } else {
+    const pips = document.createElement("div");
+    pips.className = "pc-pips";
+    const layout = PIP_LAYOUTS[label] || [];
+    for (const [col, row] of layout) {
+      const pip = document.createElement("span");
+      pip.className = "pc-pip" + (row >= 3 ? " pc-pip-flip" : "");
+      pip.style.gridColumn = String(col + 1);
+      pip.style.gridRow = String(row + 1);
+      pip.textContent = suitSym;
+      pips.appendChild(pip);
+    }
+    div.appendChild(pips);
+  }
+
   return div;
 }
 

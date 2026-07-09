@@ -90,13 +90,41 @@ input:focus { outline: 2px solid #ffcc4d; }
 
 .card-chip {
   width: 42px; height: 60px; background: #fff; border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  font-weight: 700; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  position: relative;
 }
 .card-chip.red { color: #d3252b; }
 .card-chip.black { color: #1c1c1c; }
-.card-chip.back { background: repeating-linear-gradient(45deg, #345, #345 4px, #234 4px, #234 8px); }
+.card-chip.back {
+  background:
+    repeating-linear-gradient(45deg, #2b3f6b 0 4px, #1e2c4d 4px 8px);
+  border: 2px solid #0f1730; box-sizing: border-box;
+}
 .card-chip.empty { background: transparent; box-shadow: none; border: 2px dashed rgba(255,255,255,0.15); }
+
+/* ---- 실제 트럼프 카드 디자인: 코너 인덱스 + 핍(pip) 배열 / 얼굴카드 ---- */
+.pc-corner {
+  position: absolute; display: flex; flex-direction: column; align-items: center; line-height: 1;
+  font-weight: 800; font-size: 0.62em;
+}
+.pc-corner-tl { top: 7%; left: 9%; }
+.pc-corner-br { bottom: 7%; right: 9%; transform: rotate(180deg); }
+.pc-corner .pc-suit { font-size: 0.85em; margin-top: 1px; }
+
+.pc-pips {
+  position: absolute; inset: 17% 11%;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, 1fr);
+}
+.pc-pip { display: flex; align-items: center; justify-content: center; font-size: 1.05em; }
+.pc-pip-flip { transform: rotate(180deg); }
+
+.pc-face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.pc-face-letter { font-size: 2.1em; font-weight: 900; line-height: 1; }
+.pc-face-suit { font-size: 1.05em; margin-top: 3px; }
+.pc-ace-suit { font-size: 2.3em; margin-top: 0; }
+.pc-face.pc-face-jqk::before {
+  content: ""; position: absolute; inset: 15%; border: 1px solid currentColor; opacity: 0.3; border-radius: 4px;
+}
 
 #seats { position: absolute; inset: 0; }
 .seat {
@@ -174,7 +202,7 @@ input:focus { outline: 2px solid #ffcc4d; }
   100% { left: 50%; top: 50%; opacity: 0; transform: translate(-50%, -50%) scale(0.7) rotate(180deg); }
 }
 .seat .hole-cards { display: flex; gap: 3px; justify-content: center; margin-top: 4px; }
-.seat .hole-cards .card-chip { width: 28px; height: 40px; font-size: 11px; }
+.seat .hole-cards .card-chip { width: 28px; height: 40px; font-size: 9px; }
 .seat .status-tag {
   font-size: 10px; margin-top: 2px; color: #ff8a8a; font-weight: 700;
 }
