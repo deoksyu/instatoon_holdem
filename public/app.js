@@ -814,11 +814,12 @@ function renderSeats(state, you, verifiedMap) {
 
     seat.appendChild(chipStackEl(p.chips, chipScaleMax));
 
+    // 현재 베팅액은 좌석 우측 상단에 큼직한 배지로 표시 (하단 잔더미 대신)
     if (p.betThisStreet > 0) {
-      const betWrap = document.createElement("div");
-      betWrap.className = "bet";
-      betWrap.appendChild(chipStackEl(p.betThisStreet, chipScaleMax, { small: true }));
-      seat.appendChild(betWrap);
+      const betBadge = document.createElement("div");
+      betBadge.className = "seat-bet-badge";
+      betBadge.textContent = p.betThisStreet.toLocaleString();
+      seat.appendChild(betBadge);
     }
 
     if (p.sittingOut) {
@@ -838,8 +839,9 @@ function renderSeats(state, you, verifiedMap) {
       seat.appendChild(tag);
     }
 
-    // 내 카드는 화면 하단에 크게 별도로 보여주므로 좌석 안에서는 중복 표시하지 않는다
-    if (p.id !== you && p.holeCards && p.holeCards.length) {
+    // 내 카드는 화면 하단에 크게 별도로 보여주므로 좌석 안에서는 중복 표시하지 않는다.
+    // 상대 카드는 뒷면(?) 상태일 땐 굳이 보여주지 않고, 쇼다운으로 실제 카드가 공개됐을 때만 표시한다.
+    if (p.id !== you && p.holeCards && p.holeCards.length && p.holeCards[0] !== "?") {
       const hc = document.createElement("div");
       hc.className = "hole-cards";
       p.holeCards.forEach((c) => hc.appendChild(cardEl(c)));
