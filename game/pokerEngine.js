@@ -59,6 +59,34 @@ function pickHandDefiningCards(solved) {
   return picked.map(toStr);
 }
 
+// 프리플랍 등, 카드가 5장 미만이라 pokersolver로 평가할 수 없을 때 쓰는 간단 판정.
+// 홀카드가 페어면 "Pair", 아니면 둘 중 높은 카드 1장을 "High Card"로 알려준다.
+const RANK_WORDS = { T: "10", J: "J", Q: "Q", K: "K", A: "A" };
+function rankWord(r) {
+  return RANK_WORDS[r] || r;
+}
+function simplePreflopHandInfo(cards) {
+  const rankOf = (c) => c.slice(0, -1);
+  const rankIndex = (r) => RANKS.indexOf(r);
+  if (cards.length === 2 && rankOf(cards[0]) === rankOf(cards[1])) {
+    const r = rankOf(cards[0]);
+    return {
+      name: "Pair",
+      descr: `Pair, ${rankWord(r)}'s`,
+      cards: [...cards],
+    };
+  }
+  let best = cards[0];
+  for (const c of cards) {
+    if (rankIndex(rankOf(c)) > rankIndex(rankOf(best))) best = c;
+  }
+  return {
+    name: "High Card",
+    descr: `${rankWord(rankOf(best))} High`,
+    cards: [best],
+  };
+}
+
 class Table {
   constructor({ smallBlind = 10, bigBlind = 20 } = {}) {
     this.smallBlind = smallBlind;
@@ -185,14 +213,16 @@ class Table {
     return this.players.find((p) => p.id === id);
   }
 
-  // 본인에게만 실시간으로 알려줄 현재 최고 족보 (플랍 이후, 즉 카드 5장 이상부터 평가 가능).
-  // 폴드했거나 아직 홀카드가 없거나 프리플랍이면 null.
+  // 본인에게만 실시간으로 알려줄 현재 최고 족보.
+  // 프리플랍(커뮤니티 카드 0장, 홀카드 2장뿐)에서도 페어/하이카드 정도는 바로 알려준다.
+  // 폴드했거나 아직 홀카드가 없으면 null.
   getPlayerHandInfo(playerId) {
     const p = this.getPlayer(playerId);
     if (!p || p.folded || !p.holeCards || p.holeCards.length === 0) return null;
     if (p.holeCards.includes("?")) return null;
     const allCards = [...p.holeCards, ...this.communityCards];
-    if (allCards.length < 5) return null;
+    // pokersolver는 5장 미만은 평가 못하므로, 프리플랍 등은 간단 판정(페어/하이카드)으로 대체
+    if (allCards.length < 5) return simplePreflopHandInfo(allCards);
     const solved = Hand.solve([...allCards]);
     return {
       name: solved.name,
