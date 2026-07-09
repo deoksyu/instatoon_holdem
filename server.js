@@ -78,6 +78,7 @@ function newRoom(table) {
     blindExempt: new Set(),      // 역전의 부적 사용자 - 다음 블라인드 면제 대기
     doubleWinFlags: new Set(),   // 트로피 사용자 - 이번 핸드 승리시 2배
     privatePeeks: new Map(),     // 필살기 스크롤 결과 (본인에게만 보임)
+    leaveScheduled: new Set(),   // 이번 핸드 끝나고 퇴장 예약한 플레이어
     lastCurrentPlayerId: null,
     lastResolvedHandNumber: 0,
     lastCardDraw: null,
@@ -298,9 +299,50 @@ function applyActiveGift(room, playerId, item, targetPlayerId) {
   }
 }
 
+// 플레이어를 실제로 방에서 내보냄: 진행중인 핸드에서 안전하게 빠지도록 처리
+function leaveRoomNow(room, playerId) {
+  const table = room.table;
+  const player = table.getPlayer(playerId);
+  if (player && !player.sittingOut) {
+    const inLiveHand = table.street !== "waiting" && table.street !== "showdown";
+    if (inLiveHand && !player.folded && !player.allIn) {
+      if (table.currentPlayer()?.id === playerId) {
+        // 정식 엔진 경로 - 턴 진행까지 알아서 처리됨
+        try {
+          table.handleAction(playerId, "fold");
+        } catch {
+          player.folded = true;
+        }
+      } else {
+        player.folded = true;
+        const remaining = table.activePlayersInHand();
+        if (remaining.length === 1) {
+          table._awardPotToSingleWinner(remaining[0]);
+        }
+      }
+    }
+    player.sittingOut = true;
+  }
+  room.leaveScheduled.delete(playerId);
+  room.sockets.delete(playerId);
+  if (room.hostSocketId === playerId) {
+    room.hostSocketId = room.sockets.keys().next().value || null;
+  }
+}
+
+// 핸드가 쇼다운으로 끝난 시점에 "판 끝나고 퇴장 예약"한 플레이어들을 실제로 내보냄
+function processScheduledLeaves(room) {
+  if (room.leaveScheduled.size === 0) return;
+  if (room.table.street !== "showdown") return;
+  for (const playerId of [...room.leaveScheduled]) {
+    leaveRoomNow(room, playerId);
+  }
+}
+
 function afterTableChange(room) {
   maybeDrawCheerCard(room);
   resolveHandEnd(room);
+  processScheduledLeaves(room);
 }
 
 function roomOfSocket(socketId) {
@@ -363,6 +405,7 @@ function broadcastState(roomCode) {
       myCardInventory: room.cardInventory.get(socketId) || [],
       pendingRequests: socketId === room.hostSocketId ? pendingListForHost(room) : [],
       myPeek: room.privatePeeks.get(socketId) || null,
+      leaveScheduled: room.leaveScheduled.has(socketId),
       ...commonExtra,
     });
   }
@@ -562,6 +605,50 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ---- 퇴장 ----
+  socket.on("room:leave", ({ mode }, cb) => {
+    const roomCode = roomOfSocket(socket.id);
+    const room = rooms.get(roomCode);
+    if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
+    if (!room.sockets.has(socket.id)) return cb?.({ ok: false, error: "플레이어가 아닙니다." });
+
+    try {
+      const table = room.table;
+      const inLiveHand = table.street !== "waiting" && table.street !== "showdown";
+      if (mode === "scheduled" && inLiveHand) {
+        room.leaveScheduled.add(socket.id);
+        room.lastAnnouncement = {
+          type: "gift",
+          playerId: socket.id,
+          playerName: table.getPlayer(socket.id)?.name,
+          text: `${table.getPlayer(socket.id)?.name}님이 이번 판이 끝나면 퇴장할 예정이에요.`,
+          at: Date.now(),
+        };
+        cb?.({ ok: true, scheduled: true });
+        broadcastState(roomCode);
+        return;
+      }
+      leaveRoomNow(room, socket.id);
+      cb?.({ ok: true, scheduled: false });
+      if (room.sockets.size === 0 && room.fans.size === 0 && room.pendingRequests.size === 0) {
+        rooms.delete(roomCode);
+        return;
+      }
+      broadcastState(roomCode);
+    } catch (e) {
+      cb?.({ ok: false, error: e.message });
+    }
+  });
+
+  socket.on("room:cancelLeave", (cb) => {
+    const roomCode = roomOfSocket(socket.id);
+    const room = rooms.get(roomCode);
+    if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
+    room.leaveScheduled.delete(socket.id);
+    cb?.({ ok: true });
+    broadcastState(roomCode);
+  });
+
   // ---- 기프트 사용 (액티브) ----
   socket.on("gift:use", ({ giftId, targetPlayerId }, cb) => {
     const roomCode = roomOfSocket(socket.id);
@@ -600,18 +687,10 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const player = room.table.getPlayer(socket.id);
-    if (player) {
-      player.sittingOut = true;
-      player.folded = true;
-    }
-    room.sockets.delete(socket.id);
+    leaveRoomNow(room, socket.id);
     if (room.sockets.size === 0 && room.fans.size === 0 && room.pendingRequests.size === 0) {
       rooms.delete(roomCode);
       return;
-    }
-    if (room.hostSocketId === socket.id) {
-      room.hostSocketId = room.sockets.keys().next().value || null;
     }
     broadcastState(roomCode);
   });
@@ -635,6 +714,8 @@ module.exports = {
   applyBlindExemptions,
   applyActiveGift,
   afterTableChange,
+  leaveRoomNow,
+  processScheduledLeaves,
   MAX_PLAYERS,
   BOUNTY_RATE,
 };

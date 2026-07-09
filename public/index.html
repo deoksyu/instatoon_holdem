@@ -57,6 +57,7 @@
   <div class="topbar">
     <div class="room-code">방 코드: <b id="room-code-label">-</b> <span id="player-count-label" class="player-count"></span></div>
     <div class="fan-link">응원 링크: <a id="fan-link" href="#" target="_blank">-</a> <button id="btn-copy-fan-link" class="btn-tiny">복사</button></div>
+    <button id="btn-leave-open" class="btn-leave">🚪 퇴장</button>
   </div>
 
   <div id="pending-modal-overlay" class="pending-modal-overlay hidden">
@@ -66,11 +67,24 @@
     </div>
   </div>
 
+  <div id="leave-modal-overlay" class="pending-modal-overlay hidden">
+    <div class="pending-modal" style="max-width:340px; text-align:center;">
+      <div class="pending-title">🚪 퇴장하시겠어요?</div>
+      <p style="color:#9aa0ac; font-size:13px; margin-bottom:16px;">지금 진행 중인 판이 있다면 자동으로 폴드 처리돼요.</p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button id="btn-leave-now" class="btn-primary" style="margin:0;">즉시 퇴장</button>
+        <button id="btn-leave-scheduled" class="btn-secondary" style="margin:0;">이번 판 끝나고 퇴장</button>
+        <button id="btn-leave-cancel" class="btn-tiny" style="margin-top:4px;">취소</button>
+      </div>
+    </div>
+  </div>
+
   <div id="my-status" class="my-status hidden">
     <div class="ms-item">현상금 <b id="ms-bounty">0</b></div>
     <div class="ms-item">사냥 획득 <b id="ms-bounty-earned">0</b></div>
     <div class="ms-item">응원 <b id="ms-cheer">0</b>/21</div>
     <div id="ms-rebuy-tag" class="ms-tag hidden">🔄 무료 리바인 보유</div>
+    <div id="ms-leave-tag" class="leave-scheduled-tag hidden">🚪 이번 판 끝나고 퇴장 예정 <button id="btn-cancel-leave" class="btn-tiny">취소</button></div>
   </div>
   <div id="card-inventory" class="card-inventory"></div>
 

@@ -286,6 +286,27 @@ function renderPendingPanel(msg) {
   }
 }
 
+document.getElementById("btn-leave-open").addEventListener("click", () => {
+  document.getElementById("leave-modal-overlay").classList.remove("hidden");
+});
+document.getElementById("btn-leave-cancel").addEventListener("click", () => {
+  document.getElementById("leave-modal-overlay").classList.add("hidden");
+});
+document.getElementById("btn-leave-now").addEventListener("click", () => {
+  socket.emit("room:leave", { mode: "immediate" }, (res) => {
+    document.getElementById("leave-modal-overlay").classList.add("hidden");
+    if (!res.ok) return alert(res.error);
+    location.reload();
+  });
+});
+document.getElementById("btn-leave-scheduled").addEventListener("click", () => {
+  socket.emit("room:leave", { mode: "scheduled" }, (res) => {
+    document.getElementById("leave-modal-overlay").classList.add("hidden");
+    if (!res.ok) return alert(res.error);
+    if (!res.scheduled) location.reload(); // 진행중인 핸드가 없었다면 즉시 처리됐을 것
+  });
+});
+
 document.getElementById("btn-copy-fan-link").addEventListener("click", () => {
   const link = document.getElementById("fan-link").href;
   navigator.clipboard?.writeText(link).then(
@@ -311,7 +332,15 @@ function renderMyStatus(msg, state) {
   document.getElementById("ms-cheer").textContent = (msg.cheerCounts && msg.cheerCounts[msg.you]) || 0;
   const rebuy = msg.rebuyInfo && msg.rebuyInfo[msg.you];
   document.getElementById("ms-rebuy-tag").classList.toggle("hidden", !(rebuy && rebuy.eligible));
+  document.getElementById("ms-leave-tag").classList.toggle("hidden", !msg.leaveScheduled);
 }
+
+document.getElementById("btn-cancel-leave").addEventListener("click", (e) => {
+  e.stopPropagation();
+  socket.emit("room:cancelLeave", (res) => {
+    if (res && !res.ok) alert(res.error);
+  });
+});
 
 function renderCardInventory(msg, state) {
   const box = document.getElementById("card-inventory");
