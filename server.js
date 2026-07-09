@@ -1,4 +1,5 @@
 // server.js
+const fs = require("fs");
 const path = require("path");
 const express = require("express");
 const http = require("http");
@@ -10,6 +11,25 @@ const { drawCard } = require("./game/cheerCards");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
+// 배포(서버 재시작)마다 바뀌는 값 - HTML이 참조하는 js/css에 쿼리스트링으로 붙여서
+// 브라우저가 예전 탭에 캐시된 오래된 스크립트를 계속 쓰는 문제를 방지한다.
+const ASSET_VERSION = Date.now();
+function serveVersionedHtml(filePath) {
+  return (req, res) => {
+    fs.readFile(filePath, "utf8", (err, html) => {
+      if (err) return res.status(500).send("Internal Server Error");
+      const versioned = html.replace(
+        /(src|href)="([^"]+\.(?:js|css))"/g,
+        (m, attr, url) => `${attr}="${url}?v=${ASSET_VERSION}"`
+      );
+      res.type("html").send(versioned);
+    });
+  };
+}
+app.get("/", serveVersionedHtml(path.join(__dirname, "public", "index.html")));
+app.get("/index.html", serveVersionedHtml(path.join(__dirname, "public", "index.html")));
+app.get("/fan.html", serveVersionedHtml(path.join(__dirname, "public", "fan.html")));
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
@@ -509,6 +529,7 @@ io.on("connection", (socket) => {
         startingChips,
       });
       socket.join(code);
+      console.log(`[requestJoin] room=${code} socket=${socket.id} name=${name} pendingKeys=${[...room.pendingRequests.keys()]}`);
       cb({ ok: true, roomCode: code, profile, startingChips, status: "pending" });
       broadcastState(code);
     } catch (e) {
@@ -523,7 +544,11 @@ io.on("connection", (socket) => {
     if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
     if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 승인할 수 있습니다." });
     const req = room.pendingRequests.get(targetId);
-    if (!req) return cb?.({ ok: false, error: "이미 처리되었거나 존재하지 않는 요청입니다." });
+    if (!req) {
+      console.log(`[approve] MISS room=${roomCode} targetId=${targetId} pendingKeys=${[...room.pendingRequests.keys()]} hostSocketId=${room.hostSocketId} callerSocket=${socket.id}`);
+      return cb?.({ ok: false, error: "이미 처리되었거나 존재하지 않는 요청입니다." });
+    }
+    console.log(`[approve] OK room=${roomCode} targetId=${targetId} name=${req.name}`);
     if (room.table.players.length >= MAX_PLAYERS) {
       return cb?.({ ok: false, error: `방 정원(최대 ${MAX_PLAYERS}명)이 가득 찼습니다.` });
     }

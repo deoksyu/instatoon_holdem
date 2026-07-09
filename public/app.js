@@ -330,9 +330,19 @@ function renderPendingPanel(msg) {
     const approveBtn = document.createElement("button");
     approveBtn.className = "btn-approve";
     approveBtn.textContent = "승인";
-    approveBtn.addEventListener("click", () => socket.emit("room:approve", { targetId: r.socketId }, (res) => {
-      if (res && !res.ok) alert(res.error);
-    }));
+    approveBtn.addEventListener("click", () => {
+      approveBtn.disabled = true;
+      approveBtn.textContent = "승인 중...";
+      socket.emit("room:approve", { targetId: r.socketId }, (res) => {
+        if (res && !res.ok) {
+          // 그 사이 요청이 취소/처리된 경우 등 - 요란한 alert 대신 조용히 알리고 목록은
+          // 곧 이어질 room:state로 자동 갱신되게 둔다 (재클릭 유도)
+          approveBtn.disabled = false;
+          approveBtn.textContent = "승인";
+          showFanToast(`⚠️ ${r.name}님 참가 요청을 처리하지 못했어요 (${res.error}). 목록이 갱신되면 다시 시도해주세요.`);
+        }
+      });
+    });
     const rejectBtn = document.createElement("button");
     rejectBtn.className = "btn-reject";
     rejectBtn.textContent = "거절";
