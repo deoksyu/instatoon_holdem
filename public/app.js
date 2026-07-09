@@ -317,7 +317,7 @@ function renderCardInventory(msg) {
     const el = document.createElement("div");
     el.className = "inv-card";
     el.style.background = RARITY_STYLE[card.rarity]?.bg || "#999";
-    el.textContent = `${card.emoji} [${card.rarity}] ${card.name}`;
+    el.textContent = `${card.emoji} [${card.rarity}] ${card.name} (응원${card.cheerCountAtDraw ?? 0})`;
     box.appendChild(el);
   }
 }
@@ -335,7 +335,7 @@ function renderNotifications(msg) {
     lastCardDrawAt = msg.lastCardDraw.at;
     const d = msg.lastCardDraw;
     if (d.card.rarity !== "꽝") {
-      showFanToast(`${d.card.emoji} ${d.playerName}님이 [${d.card.rarity}] ${d.card.name} 카드 획득!`);
+      showFanToast(`${d.card.emoji} ${d.playerName}님이 응원 ${d.cheerCountAtDraw}회 받고 [${d.card.rarity}] ${d.card.name} 카드 획득!`);
     }
   }
   if (msg.lastAnnouncement && msg.lastAnnouncement.at && msg.lastAnnouncement.at > lastAnnouncementAt) {

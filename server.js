@@ -103,6 +103,7 @@ function maybeDrawCheerCard(room) {
   if (curId && curId !== room.lastCurrentPlayerId) {
     const count = room.cheerCounts.get(curId) || 0;
     const card = drawCard(count);
+    card.cheerCountAtDraw = count; // 카드에도 응원 수를 기록해 인벤토리에서도 확인 가능하게
     room.cheerCounts.set(curId, 0);
     const inv = room.cardInventory.get(curId) || [];
     inv.push(card);
