@@ -112,12 +112,24 @@ input:focus { outline: 2px solid #ffcc4d; }
   box-shadow: 0 16px 34px rgba(0,0,0,0.65);
 }
 
+/* 화면 하단에 고정 - 평소엔 카드의 약 2/3를 아래로 내려서 위쪽 모서리 정보(숫자/무늬)만
+   보이게 하고, 마우스를 올리면 위로 올라오며 커져서 전체가 또렷하게 보인다 */
 .my-hole-cards {
-  display: flex; justify-content: center; align-items: flex-end; gap: 14px;
-  padding: 14px 0 6px;
+  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%);
+  display: flex; justify-content: center; gap: 16px;
+  z-index: 30; pointer-events: none;
 }
-.my-hole-cards .card-chip { width: 84px; height: 118px; font-size: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.55); }
-.my-hole-cards .card-chip.playing-card:hover { transform: scale(1.35); transform-origin: bottom center; }
+.my-hole-cards .card-chip {
+  width: 84px; height: 118px; font-size: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.55);
+  pointer-events: auto;
+  transform: translateY(76px);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.my-hole-cards .card-chip.playing-card:hover {
+  transform: translateY(0) scale(1.15);
+  box-shadow: 0 16px 34px rgba(0,0,0,0.65);
+  z-index: 200;
+}
 
 /* ---- 실제 트럼프 카드 디자인: 코너 인덱스 + 핍(pip) 배열 / 얼굴카드 ---- */
 .pc-corner {

@@ -838,7 +838,8 @@ function renderSeats(state, you, verifiedMap) {
       seat.appendChild(tag);
     }
 
-    if (p.holeCards && p.holeCards.length) {
+    // 내 카드는 화면 하단에 크게 별도로 보여주므로 좌석 안에서는 중복 표시하지 않는다
+    if (p.id !== you && p.holeCards && p.holeCards.length) {
       const hc = document.createElement("div");
       hc.className = "hole-cards";
       p.holeCards.forEach((c) => hc.appendChild(cardEl(c)));
