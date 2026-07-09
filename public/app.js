@@ -40,44 +40,68 @@ function cardEl(card, opts = {}) {
   return div;
 }
 
-// ---------- 칩 그래픽 (숫자 대신 눈으로 비교 가능한 실물 칩 스택) ----------
-const CHIP_TIERS = [
-  { min: 5000, color: "#ffd447", ring: "#a8790a" },
-  { min: 1000, color: "#b06bff", ring: "#6b3fa0" },
-  { min: 500, color: "#ff5c5c", ring: "#a83030" },
-  { min: 100, color: "#4d9dff", ring: "#2b5fa0" },
-  { min: 0, color: "#e8e8e8", ring: "#999" },
+// ---------- 칩 그래픽 (진짜 카지노 포커칩처럼 위에서 본 원판 + 여러 색이 흩뿌려진 더미) ----------
+// 실제 카지노 칩 색 관례를 따른 액면가별 색상
+const CHIP_DENOMS = [
+  { value: 1000, color: "#f4c430", edge: "#fff6d8" }, // 금색
+  { value: 500, color: "#a855f7", edge: "#f1e2ff" },  // 보라
+  { value: 100, color: "#1f2430", edge: "#e6e8ec" },  // 검정
+  { value: 25, color: "#1f8a4c", edge: "#dbf5e4" },   // 초록
+  { value: 5, color: "#e0342c", edge: "#ffd9d6" },    // 빨강
+  { value: 1, color: "#e8e6e0", edge: "#8a8a86" },    // 흰색
 ];
-function chipTierFor(amount) {
-  return CHIP_TIERS.find((t) => amount >= t.min) || CHIP_TIERS[CHIP_TIERS.length - 1];
+
+// amount를 액면가 칩들로 그리디 분해 (표시용 - 실제 정산과 무관)
+function denominationBreakdown(amount) {
+  let remaining = Math.max(0, Math.round(amount));
+  const tokens = [];
+  for (const d of CHIP_DENOMS) {
+    while (remaining >= d.value && tokens.length < 60) {
+      tokens.push(d);
+      remaining -= d.value;
+    }
+  }
+  if (tokens.length === 0 && amount > 0) tokens.push(CHIP_DENOMS[CHIP_DENOMS.length - 1]);
+  return tokens;
 }
 
-// amount에 비례한 칩 스택(원판을 쌓은 그래픽) DOM을 만든다. maxAmount 기준 상대적 높이로 그려서
-// "누가 더 많이 가졌는지" 숫자 계산 없이 한눈에 비교 가능하게 한다.
+// 분해된 토큰이 표시 개수(maxChips)보다 많으면 액면가 다양성을 유지하며 고르게 샘플링
+function sampleTokens(tokens, maxChips) {
+  if (tokens.length <= maxChips) return tokens;
+  const picked = [];
+  const step = tokens.length / maxChips;
+  for (let i = 0; i < maxChips; i++) picked.push(tokens[Math.floor(i * step)]);
+  return picked;
+}
+
+// amount에 비례해 칩 개수를 정하고(maxAmount 기준 상대비교), 실제 카지노 칩처럼 위에서 본
+// 원판(테두리 줄무늬 + 안쪽 원)들을 살짝 흩뿌려진 더미 모양으로 배치한다.
 function chipStackEl(amount, maxAmount, opts = {}) {
   const wrap = document.createElement("div");
-  wrap.className = "chip-stack" + (opts.small ? " small" : "");
+  wrap.className = "chip-pile" + (opts.small ? " small" : "");
   if (!amount || amount <= 0) {
     wrap.classList.add("empty");
-    if (opts.showLabel !== false) {
-      const label = document.createElement("div");
-      label.className = "chip-stack-label";
-      label.textContent = "0";
-      wrap.appendChild(label);
-    }
-    return wrap;
-  }
-  const ratio = maxAmount > 0 ? Math.max(0, Math.min(1, amount / maxAmount)) : 0;
-  const maxDiscs = opts.maxDiscs || (opts.small ? 6 : 10);
-  const discCount = Math.max(1, Math.round(ratio * maxDiscs));
-  const tier = chipTierFor(amount);
-  for (let i = 0; i < discCount; i++) {
-    const disc = document.createElement("div");
-    disc.className = "chip-disc";
-    disc.style.background = tier.color;
-    disc.style.borderColor = tier.ring;
-    disc.style.bottom = i * (opts.small ? 2 : 3) + "px";
-    wrap.appendChild(disc);
+  } else {
+    const ratio = maxAmount > 0 ? Math.max(0, Math.min(1, amount / maxAmount)) : 0;
+    const maxChips = opts.maxDiscs || (opts.small ? 5 : 9);
+    const chipCount = Math.max(1, Math.round(ratio * maxChips));
+    const tokens = sampleTokens(denominationBreakdown(amount), chipCount);
+    tokens.forEach((d, i) => {
+      const chip = document.createElement("div");
+      chip.className = "poker-chip";
+      chip.style.setProperty("--chip-color", d.color);
+      chip.style.setProperty("--chip-edge", d.edge);
+      // 인덱스 기반 결정론적 "흩뿌림" - 매 렌더마다 위치가 튀지 않으면서도 제각각으로 보이게
+      const jitterX = (((i * 37 + 11) % 17) - 8) * (opts.small ? 0.6 : 1);
+      const jitterY = (((i * 53 + 7) % 11) - 5) * (opts.small ? 0.6 : 1);
+      const rot = ((i * 29 + 13) % 50) - 25;
+      const stackLift = i * (opts.small ? 1.2 : 1.8);
+      chip.style.left = `calc(50% + ${jitterX}px)`;
+      chip.style.top = `calc(50% + ${jitterY}px - ${stackLift}px)`;
+      chip.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`;
+      chip.style.zIndex = String(i);
+      wrap.appendChild(chip);
+    });
   }
   if (opts.showLabel !== false) {
     const label = document.createElement("div");
@@ -88,17 +112,28 @@ function chipStackEl(amount, maxAmount, opts = {}) {
   return wrap;
 }
 
-// 베팅/블라인드로 칩이 늘어난 순간, 좌석 위치(%)에서 팟 중앙(50%,50%)으로 칩이 날아가는 연출
-function spawnChipThrow(fromLeftPct, fromTopPct) {
+// 베팅/블라인드로 칩이 늘어난 순간, 좌석 위치(%)에서 팟 중앙(50%,50%)으로 칩 몇 개가 살짝
+// 시차를 두고 날아가는 연출. 색은 액면가 팔레트에서 무작위로 골라 알록달록하게.
+function spawnChipThrow(fromLeftPct, fromTopPct, amount) {
   const felt = document.getElementById("table-felt");
   if (!felt) return;
-  const el = document.createElement("div");
-  el.className = "chip-throw";
-  el.style.setProperty("--from-left", fromLeftPct + "%");
-  el.style.setProperty("--from-top", fromTopPct + "%");
-  felt.appendChild(el);
-  el.addEventListener("animationend", () => el.remove());
-  setTimeout(() => el.remove(), 900); // 안전장치
+  const throwCount = Math.max(1, Math.min(4, Math.round(Math.sqrt(Math.max(1, amount || 1)) / 6)));
+  for (let i = 0; i < throwCount; i++) {
+    setTimeout(() => {
+      const el = document.createElement("div");
+      el.className = "chip-throw";
+      const d = CHIP_DENOMS[Math.floor(Math.random() * CHIP_DENOMS.length)];
+      el.style.setProperty("--throw-color", d.color);
+      el.style.setProperty("--throw-edge", d.edge);
+      const jitterX = (Math.random() - 0.5) * 6;
+      const jitterY = (Math.random() - 0.5) * 6;
+      el.style.setProperty("--from-left", fromLeftPct + jitterX + "%");
+      el.style.setProperty("--from-top", fromTopPct + jitterY + "%");
+      felt.appendChild(el);
+      el.addEventListener("animationend", () => el.remove());
+      setTimeout(() => el.remove(), 900); // 안전장치
+    }, i * 70);
+  }
 }
 
 // ---------- Home screen ----------
@@ -682,7 +717,7 @@ function renderSeats(state, you, verifiedMap) {
 
     const prevBet = prevBetThisStreet[p.id] || 0;
     if (p.betThisStreet > prevBet) {
-      spawnChipThrow(left, top);
+      spawnChipThrow(left, top, p.betThisStreet - prevBet);
     }
     prevBetThisStreet[p.id] = p.betThisStreet;
 
