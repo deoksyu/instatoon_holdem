@@ -651,14 +651,8 @@ document.addEventListener("DOMContentLoaded", () => {
 function renderNotifications(msg) {
   if (msg.lastGiftBatch && msg.lastGiftBatch.at && msg.lastGiftBatch.at > lastGiftBatchAt) {
     lastGiftBatchAt = msg.lastGiftBatch.at;
-    const myDraws = [];
-    for (const d of msg.lastGiftBatch.draws) {
-      if (d.playerId === msg.you) {
-        myDraws.push(d);
-      } else if (d.card.rarity !== "꽝") {
-        showFanToast(`${d.card.emoji} ${d.playerName}님이 [${d.streetLabel}] 응원 ${d.cheerCountAtDraw}회 받고 [${d.card.rarity}] ${d.card.name} 기프트 획득!`);
-      }
-    }
+    // 상대가 뭘 뽑았는지는 알려주지 않는다(정보 비공개) - 내 것만 모아서 대형 연출로 보여준다
+    const myDraws = msg.lastGiftBatch.draws.filter((d) => d.playerId === msg.you);
     if (myDraws.length > 0) queueGiftReveals(myDraws);
   }
   if (msg.lastAnnouncement && msg.lastAnnouncement.at && msg.lastAnnouncement.at > lastAnnouncementAt) {
@@ -721,6 +715,7 @@ function renderSeats(state, you, verifiedMap) {
     seat.className = "seat";
     if (p.folded) seat.classList.add("folded");
     if (p.id === state.currentPlayerId) seat.classList.add("acting");
+    if (p.id === you) seat.classList.add("me");
     seat.style.left = left + "%";
     seat.style.top = top + "%";
 

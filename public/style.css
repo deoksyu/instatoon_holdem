@@ -101,7 +101,7 @@ input:focus { outline: 2px solid #ffcc4d; }
 #seats { position: absolute; inset: 0; }
 .seat {
   position: absolute; transform: translate(-50%, -50%);
-  width: 118px; text-align: center;
+  width: 132px; text-align: center;
 }
 .seat .avatar-wrap { position: relative; display: inline-block; }
 .seat img.avatar {
@@ -121,9 +121,9 @@ input:focus { outline: 2px solid #ffcc4d; }
 
 /* ---- 칩 그래픽 (실제 카지노 포커칩을 위에서 본 모양 + 여러 색이 흩뿌려진 더미) ---- */
 .chip-pile {
-  position: relative; width: 74px; height: 46px; margin: 6px auto 16px;
+  position: relative; width: 78px; height: 46px; margin: 6px auto 24px;
 }
-.chip-pile.small { width: 48px; height: 32px; margin: 3px auto 13px; }
+.chip-pile.small { width: 50px; height: 32px; margin: 3px auto 20px; }
 .chip-pile.empty { opacity: 0.3; }
 
 .poker-chip {
@@ -143,10 +143,16 @@ input:focus { outline: 2px solid #ffcc4d; }
 .chip-pile.small .poker-chip::after { inset: 22%; border-width: 1px; }
 
 .chip-stack-label {
-  position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%);
-  font-size: 10px; font-weight: 700; color: #ffcc4d; white-space: nowrap;
+  position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+  font-size: 16px; font-weight: 800; color: #ffe38a; white-space: nowrap;
+  background: rgba(0,0,0,0.6); padding: 2px 9px; border-radius: 8px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
-.chip-pile.small .chip-stack-label { font-size: 9px; color: #9be6b8; bottom: -12px; }
+.chip-pile.small .chip-stack-label {
+  font-size: 13px; color: #b9f5d0; bottom: -18px; padding: 1px 7px;
+}
+.seat.me .chip-stack-label { font-size: 18px; color: #fff2c4; bottom: -22px; }
+.seat.me .chip-pile.small .chip-stack-label { font-size: 14px; }
 
 .pot-chip-stack { display: flex; justify-content: center; min-height: 50px; margin-bottom: 2px; }
 
