@@ -89,8 +89,8 @@ input:focus { outline: 2px solid #ffcc4d; }
 .street-label { font-size: 12px; color: #cdeedd; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
 
 .card-chip {
-  width: 42px; height: 60px; background: #fff; border-radius: 6px;
-  font-weight: 700; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  width: 52px; height: 74px; background: #fff; border-radius: 7px;
+  font-weight: 700; font-size: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   position: relative;
 }
 .card-chip.red { color: #d3252b; }
@@ -101,6 +101,23 @@ input:focus { outline: 2px solid #ffcc4d; }
   border: 2px solid #0f1730; box-sizing: border-box;
 }
 .card-chip.empty { background: transparent; box-shadow: none; border: 2px dashed rgba(255,255,255,0.15); }
+
+.card-chip.playing-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+.card-chip.playing-card:hover {
+  transform: scale(2.3);
+  z-index: 200;
+  box-shadow: 0 16px 34px rgba(0,0,0,0.65);
+}
+
+.my-hole-cards {
+  display: flex; justify-content: center; align-items: flex-end; gap: 14px;
+  padding: 14px 0 6px;
+}
+.my-hole-cards .card-chip { width: 84px; height: 118px; font-size: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.55); }
+.my-hole-cards .card-chip.playing-card:hover { transform: scale(1.35); transform-origin: bottom center; }
 
 /* ---- 실제 트럼프 카드 디자인: 코너 인덱스 + 핍(pip) 배열 / 얼굴카드 ---- */
 .pc-corner {
@@ -202,7 +219,7 @@ input:focus { outline: 2px solid #ffcc4d; }
   100% { left: 50%; top: 50%; opacity: 0; transform: translate(-50%, -50%) scale(0.7) rotate(180deg); }
 }
 .seat .hole-cards { display: flex; gap: 3px; justify-content: center; margin-top: 4px; }
-.seat .hole-cards .card-chip { width: 28px; height: 40px; font-size: 9px; }
+.seat .hole-cards .card-chip { width: 34px; height: 48px; font-size: 11px; }
 .seat .status-tag {
   font-size: 10px; margin-top: 2px; color: #ff8a8a; font-weight: 700;
 }
@@ -308,6 +325,20 @@ input:focus { outline: 2px solid #ffcc4d; }
 }
 .pending-item .btn-approve { background: #2a3d2a; color: #9be6b8; }
 .pending-item .btn-reject { background: #3a2530; color: #ff9d9d; }
+
+.handranks-modal { max-width: 380px; }
+.handranks-list { list-style: none; counter-reset: hr-rank; display: flex; flex-direction: column; gap: 6px; }
+.handranks-list li {
+  counter-increment: hr-rank;
+  display: flex; flex-direction: column; gap: 1px;
+  background: #1e2029; border-radius: 8px; padding: 8px 12px;
+  border-left: 3px solid #ffcc4d;
+}
+.handranks-list li::before {
+  content: counter(hr-rank) "위"; font-size: 10px; color: #ffcc4d; font-weight: 800; margin-bottom: 2px;
+}
+.handranks-list li b { color: #fff; font-size: 13px; }
+.handranks-list li span { color: #9aa0ac; font-size: 11px; }
 
 .verified-badge {
   display: inline-block; width: 13px; height: 13px; vertical-align: middle; margin-left: 2px;

@@ -58,7 +58,27 @@
     <div class="room-code">방 코드: <b id="room-code-label">-</b> <span id="player-count-label" class="player-count"></span></div>
     <div class="fan-link">응원 링크: <a id="fan-link" href="#" target="_blank">-</a> <button id="btn-copy-fan-link" class="btn-tiny">복사</button></div>
     <button id="btn-pending-open" class="btn-approve-open">✅ 참가 승인 <span id="pending-count-badge" class="pending-count-badge hidden"></span></button>
+    <button id="btn-handranks-open" class="btn-tiny">📖 족보</button>
     <button id="btn-leave-open" class="btn-leave">🚪 퇴장</button>
+  </div>
+
+  <div id="handranks-modal-overlay" class="pending-modal-overlay hidden">
+    <div class="pending-modal handranks-modal">
+      <div class="pending-title">📖 족보 (높은 순)</div>
+      <ol class="handranks-list">
+        <li><b>로열 플러시</b><span>같은 무늬 10-J-Q-K-A</span></li>
+        <li><b>스트레이트 플러시</b><span>같은 무늬 숫자 5장 연속</span></li>
+        <li><b>포카드</b><span>같은 숫자 4장</span></li>
+        <li><b>풀하우스</b><span>트리플 + 원페어</span></li>
+        <li><b>플러시</b><span>같은 무늬 5장 (숫자 상관없음)</span></li>
+        <li><b>스트레이트</b><span>숫자 5장 연속 (무늬 상관없음)</span></li>
+        <li><b>트리플</b><span>같은 숫자 3장</span></li>
+        <li><b>투페어</b><span>같은 숫자 2장 페어 두 쌍</span></li>
+        <li><b>원페어</b><span>같은 숫자 2장</span></li>
+        <li><b>하이카드</b><span>위에 아무것도 없으면 가장 높은 카드로 승부</span></li>
+      </ol>
+      <button id="btn-handranks-close" class="btn-tiny" style="margin-top:12px;">닫기</button>
+    </div>
   </div>
 
   <div id="pending-modal-overlay" class="pending-modal-overlay hidden">
@@ -100,6 +120,8 @@
     </div>
     <div id="seats"></div>
   </div>
+
+  <div id="my-hole-cards" class="my-hole-cards hidden"></div>
 
   <div id="result-banner" class="result-banner hidden"></div>
 

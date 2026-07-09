@@ -407,6 +407,7 @@ function render(msg) {
   // 각 렌더 단계를 개별적으로 감싸서, 한 섹션에서 예외가 나도(예: 새 기능 버그)
   // 승인 패널 등 나머지 UI가 통째로 멈추지 않도록 방어한다.
   safeRender("renderSeats", () => renderSeats(state, msg.you, msg.verified));
+  safeRender("renderMyHoleCards", () => renderMyHoleCards(state, msg.you));
   safeRender("renderResult", () => renderResult(state));
   safeRender("renderControls", () => renderControls(msg, state));
   safeRender("renderMyStatus", () => renderMyStatus(msg, state));
@@ -429,6 +430,26 @@ document.getElementById("btn-pending-open").addEventListener("click", () => {
 document.getElementById("btn-pending-close").addEventListener("click", () => {
   document.getElementById("pending-modal-overlay").classList.add("hidden");
 });
+document.getElementById("btn-handranks-open").addEventListener("click", () => {
+  document.getElementById("handranks-modal-overlay").classList.remove("hidden");
+});
+document.getElementById("btn-handranks-close").addEventListener("click", () => {
+  document.getElementById("handranks-modal-overlay").classList.add("hidden");
+});
+
+// 내 홀카드를 화면 하단에 크게 표시 (모서리 정보가 또렷하게 보이도록)
+function renderMyHoleCards(state, you) {
+  const box = document.getElementById("my-hole-cards");
+  if (!box) return;
+  box.innerHTML = "";
+  const me = state.players.find((p) => p.id === you);
+  if (!me || !me.holeCards || me.holeCards.length === 0 || me.holeCards[0] === "?") {
+    box.classList.add("hidden");
+    return;
+  }
+  box.classList.remove("hidden");
+  me.holeCards.forEach((c) => box.appendChild(cardEl(c)));
+}
 
 function renderPendingPanel(msg) {
   const openBtn = document.getElementById("btn-pending-open");
