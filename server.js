@@ -35,20 +35,13 @@ app.get("/api/ig-preview", async (req, res) => {
  * room = {
  *   table: Table,
  *   hostSocketId: string,
- *   sockets: Map<socketId, {name}>            // 플레이어
- *   fans: Map<socketId, {name}>                // 관전/응원 팬
- *   startingChipsMap: Map<playerId, number>
- *   posts: Map<playerId, number>                // IG 게시물 수 (리바인 대상 판단용)
- *   bounties: Map<playerId, number>
- *   bountyEarnings: Map<playerId, number>
- *   rebuyUsed: Map<playerId, boolean>
+ *   sockets: Map<socketId, {name}>              // 승인된 플레이어
+ *   fans: Map<socketId, {name}>                  // 관전/응원 팬 (승인 불필요)
+ *   pendingRequests: Map<socketId, {name, profile, startingChips}>  // 참가 승인 대기
+ *   startingChipsMap / posts / bounties / bountyEarnings / rebuyUsed / verified: Map<playerId, ...>
  *   eliminated: Set<playerId>
- *   cheerCounts: Map<playerId, number>
- *   cardInventory: Map<playerId, card[]>
- *   lastCurrentPlayerId: string|null
- *   lastResolvedHandNumber: number
- *   lastCardDraw: {...}|null
- *   lastAnnouncement: {...}|null
+ *   cheerCounts / cardInventory: Map<playerId, ...>
+ *   lastCurrentPlayerId, lastResolvedHandNumber, lastCardDraw, lastAnnouncement
  * }
  */
 const rooms = new Map();
@@ -68,11 +61,13 @@ function newRoom(table) {
     hostSocketId: null,
     sockets: new Map(),
     fans: new Map(),
+    pendingRequests: new Map(),
     startingChipsMap: new Map(),
     posts: new Map(),
     bounties: new Map(),
     bountyEarnings: new Map(),
     rebuyUsed: new Map(),
+    verified: new Map(),
     eliminated: new Set(),
     cheerCounts: new Map(),
     cardInventory: new Map(),
@@ -89,6 +84,7 @@ function registerPlayerMeta(room, profile, startingChips, playerId) {
   room.bounties.set(playerId, Math.round(startingChips * BOUNTY_RATE));
   room.bountyEarnings.set(playerId, 0);
   room.rebuyUsed.set(playerId, false);
+  room.verified.set(playerId, !!profile.verified);
   room.cheerCounts.set(playerId, 0);
   room.cardInventory.set(playerId, []);
 }
@@ -177,9 +173,18 @@ function afterTableChange(room) {
 
 function roomOfSocket(socketId) {
   for (const [code, room] of rooms.entries()) {
-    if (room.sockets.has(socketId) || room.fans.has(socketId)) return code;
+    if (room.sockets.has(socketId) || room.fans.has(socketId) || room.pendingRequests.has(socketId)) return code;
   }
   return null;
+}
+
+function pendingListForHost(room) {
+  return [...room.pendingRequests.entries()].map(([socketId, req]) => ({
+    socketId,
+    name: req.name,
+    profile: req.profile,
+    startingChips: req.startingChips,
+  }));
 }
 
 function broadcastState(roomCode) {
@@ -189,6 +194,7 @@ function broadcastState(roomCode) {
   const cheerCounts = Object.fromEntries(room.cheerCounts);
   const bounties = Object.fromEntries(room.bounties);
   const bountyEarnings = Object.fromEntries(room.bountyEarnings);
+  const verified = Object.fromEntries(room.verified);
   const fanNames = [...room.fans.values()].map((f) => f.name);
   const rebuyInfo = {};
   for (const id of room.posts.keys()) {
@@ -199,6 +205,7 @@ function broadcastState(roomCode) {
     cheerCounts,
     bounties,
     bountyEarnings,
+    verified,
     fanNames,
     fanCount: room.fans.size,
     rebuyInfo,
@@ -215,11 +222,13 @@ function broadcastState(roomCode) {
       hostId: room.hostSocketId,
       isHost: socketId === room.hostSocketId,
       isFan: false,
+      pendingApproval: false,
       chipRule: CHIP_RULE,
       state: room.table.publicState(socketId),
       legalActions: room.table.legalActions(socketId),
       you: socketId,
       myCardInventory: room.cardInventory.get(socketId) || [],
+      pendingRequests: socketId === room.hostSocketId ? pendingListForHost(room) : [],
       ...commonExtra,
     });
   }
@@ -232,11 +241,32 @@ function broadcastState(roomCode) {
       hostId: room.hostSocketId,
       isHost: false,
       isFan: true,
+      pendingApproval: false,
       chipRule: CHIP_RULE,
       state: room.table.publicState(null),
       legalActions: [],
       you: socketId,
       myCardInventory: [],
+      pendingRequests: [],
+      ...commonExtra,
+    });
+  }
+
+  for (const socketId of room.pendingRequests.keys()) {
+    const sock = io.sockets.sockets.get(socketId);
+    if (!sock) continue;
+    sock.emit("room:state", {
+      roomCode,
+      hostId: room.hostSocketId,
+      isHost: false,
+      isFan: false,
+      pendingApproval: true,
+      chipRule: CHIP_RULE,
+      state: room.table.publicState(null),
+      legalActions: [],
+      you: socketId,
+      myCardInventory: [],
+      pendingRequests: [],
       ...commonExtra,
     });
   }
@@ -268,29 +298,66 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("room:join", async ({ roomCode, name, instagramUsername }, cb) => {
+  // 참가 신청 -> 방장 승인 대기열로 들어감 (즉시 입장 아님)
+  socket.on("room:requestJoin", async ({ roomCode, name, instagramUsername }, cb) => {
     try {
-      const room = rooms.get((roomCode || "").toUpperCase());
+      const code = (roomCode || "").toUpperCase();
+      const room = rooms.get(code);
       if (!room) return cb({ ok: false, error: "존재하지 않는 방 코드입니다." });
       const profile = await fetchInstagramProfile(instagramUsername);
       const startingChips = calcStartingChips(profile, CHIP_RULE);
-      room.table.addPlayer({
-        id: socket.id,
+      room.pendingRequests.set(socket.id, {
         name: name || profile.displayName,
-        avatarUrl: profile.avatarUrl,
-        chips: startingChips,
+        profile,
+        startingChips,
       });
-      room.sockets.set(socket.id, { name });
-      registerPlayerMeta(room, profile, startingChips, socket.id);
-      socket.join(roomCode.toUpperCase());
-      cb({ ok: true, roomCode: roomCode.toUpperCase(), profile, startingChips, bounty: room.bounties.get(socket.id) });
-      broadcastState(roomCode.toUpperCase());
+      socket.join(code);
+      cb({ ok: true, roomCode: code, profile, startingChips, status: "pending" });
+      broadcastState(code);
     } catch (e) {
       cb({ ok: false, error: e.message });
     }
   });
 
-  // ---- 팬(관전/응원) ----
+  // 방장: 참가 승인
+  socket.on("room:approve", ({ targetId }, cb) => {
+    const roomCode = roomOfSocket(socket.id);
+    const room = rooms.get(roomCode);
+    if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
+    if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 승인할 수 있습니다." });
+    const req = room.pendingRequests.get(targetId);
+    if (!req) return cb?.({ ok: false, error: "이미 처리되었거나 존재하지 않는 요청입니다." });
+
+    room.table.addPlayer({
+      id: targetId,
+      name: req.name,
+      avatarUrl: req.profile.avatarUrl,
+      chips: req.startingChips,
+    });
+    registerPlayerMeta(room, req.profile, req.startingChips, targetId);
+    room.sockets.set(targetId, { name: req.name });
+    room.pendingRequests.delete(targetId);
+
+    cb?.({ ok: true });
+    broadcastState(roomCode);
+  });
+
+  // 방장: 참가 거절
+  socket.on("room:reject", ({ targetId }, cb) => {
+    const roomCode = roomOfSocket(socket.id);
+    const room = rooms.get(roomCode);
+    if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
+    if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 거절할 수 있습니다." });
+    if (!room.pendingRequests.has(targetId)) return cb?.({ ok: false, error: "이미 처리된 요청입니다." });
+
+    room.pendingRequests.delete(targetId);
+    const targetSock = io.sockets.sockets.get(targetId);
+    targetSock?.emit("room:rejected", { roomCode });
+    cb?.({ ok: true });
+    broadcastState(roomCode);
+  });
+
+  // ---- 팬(관전/응원) - 승인 불필요, 자유 참가 ----
   socket.on("fan:join", ({ roomCode, name }, cb) => {
     const code = (roomCode || "").toUpperCase();
     const room = rooms.get(code);
@@ -362,6 +429,12 @@ io.on("connection", (socket) => {
     const room = rooms.get(roomCode);
     if (!room) return;
 
+    if (room.pendingRequests.has(socket.id)) {
+      room.pendingRequests.delete(socket.id);
+      broadcastState(roomCode);
+      return;
+    }
+
     if (room.fans.has(socket.id)) {
       room.fans.delete(socket.id);
       broadcastState(roomCode);
@@ -374,7 +447,7 @@ io.on("connection", (socket) => {
       player.folded = true;
     }
     room.sockets.delete(socket.id);
-    if (room.sockets.size === 0 && room.fans.size === 0) {
+    if (room.sockets.size === 0 && room.fans.size === 0 && room.pendingRequests.size === 0) {
       rooms.delete(roomCode);
       return;
     }

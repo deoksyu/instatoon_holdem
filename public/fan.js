@@ -1,5 +1,19 @@
 const socket = io({ transports: ["websocket"] });
 
+const VERIFIED_SVG =
+  '<svg class="verified-badge" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">' +
+  '<path fill="#3897f0" d="M19.998 3.094 24.322 0l2.075 5.259 5.596-.99-.99 5.596L36.262 12l-3.594 4.318L36.262 20l-5.259 2.075.99 5.596-5.596-.99L24.322 32l-4.324-3.094L15.674 32l-2.075-5.259-5.596.99.99-5.596L3.734 20l3.594-4.318L3.734 12l5.259-2.075-.99-5.596 5.596.99z"/>' +
+  '<path fill="#fff" d="M17.5 24.5 12 19l1.8-1.8 3.7 3.7 8.7-8.7L28 14.2z"/>' +
+  '</svg>';
+function verifiedBadge(isVerified) {
+  return isVerified ? VERIFIED_SVG : "";
+}
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
 const FALLBACK_AVATAR =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
@@ -67,7 +81,7 @@ function render(msg) {
 
     const name = document.createElement("div");
     name.className = "fp-name";
-    name.textContent = p.name;
+    name.innerHTML = escapeHtml(p.name) + verifiedBadge(msg.verified && msg.verified[p.id]);
     card.appendChild(name);
 
     const chips = document.createElement("div");

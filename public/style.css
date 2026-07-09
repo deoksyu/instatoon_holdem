@@ -179,3 +179,30 @@ input:focus { outline: 2px solid #ffcc4d; }
   border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   max-width: 90vw; text-align: center; z-index: 50;
 }
+
+/* ---- 팬 참가 버튼 / 승인 대기 / 승인 패널 / 인증뱃지 ---- */
+.fan-go-btn { background: #33324a; color: #d8b4ff; }
+.fan-go-btn:hover { background: #3d3c58; }
+
+.pending-panel {
+  margin: 10px 18px 0; padding: 10px 14px; background: #241f14; border: 1px solid #6b5420;
+  border-radius: 10px;
+}
+.pending-title { font-size: 12px; color: #ffcc4d; font-weight: 700; margin-bottom: 8px; }
+.pending-list { display: flex; flex-direction: column; gap: 8px; }
+.pending-item {
+  display: flex; align-items: center; gap: 10px; background: #1e2029; border-radius: 8px; padding: 8px 10px;
+}
+.pending-item img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+.pending-item .pi-info { flex: 1; font-size: 12px; color: #cdd1da; line-height: 1.4; }
+.pending-item .pi-info b { color: #fff; }
+.pending-item .pi-actions { display: flex; gap: 6px; }
+.pending-item .btn-approve, .pending-item .btn-reject {
+  border: none; border-radius: 6px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.pending-item .btn-approve { background: #2a3d2a; color: #9be6b8; }
+.pending-item .btn-reject { background: #3a2530; color: #ff9d9d; }
+
+.verified-badge {
+  display: inline-block; width: 13px; height: 13px; vertical-align: middle; margin-left: 2px;
+}

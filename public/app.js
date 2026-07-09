@@ -6,6 +6,20 @@ const FALLBACK_AVATAR =
     '<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><rect width="60" height="60" fill="%23333"/><text x="50%" y="55%" font-size="28" text-anchor="middle" fill="%23999">?</text></svg>'
   );
 
+const VERIFIED_SVG =
+  '<svg class="verified-badge" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">' +
+  '<path fill="#3897f0" d="M19.998 3.094 24.322 0l2.075 5.259 5.596-.99-.99 5.596L36.262 12l-3.594 4.318L36.262 20l-5.259 2.075.99 5.596-5.596-.99L24.322 32l-4.324-3.094L15.674 32l-2.075-5.259-5.596.99.99-5.596L3.734 20l3.594-4.318L3.734 12l5.259-2.075-.99-5.596 5.596.99z"/>' +
+  '<path fill="#fff" d="M17.5 24.5 12 19l1.8-1.8 3.7 3.7 8.7-8.7L28 14.2z"/>' +
+  '</svg>';
+function verifiedBadge(isVerified) {
+  return isVerified ? VERIFIED_SVG : "";
+}
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
 const SUIT = { c: "♣", d: "♦", h: "♥", s: "♠" };
 function isRed(suit) { return suit === "d" || suit === "h"; }
 
@@ -60,8 +74,8 @@ async function previewProfile(igInputId, boxId) {
     const info = document.createElement("div");
     info.className = "pv-info";
     info.innerHTML =
-      `<b>${data.profile.displayName}</b> (@${data.profile.username})<br>` +
-      `게시물 ${data.profile.posts} · 팔로워 ${data.profile.followers}<br>` +
+      `<b>${data.profile.displayName}</b>${verifiedBadge(data.profile.verified)} (@${data.profile.username})<br>` +
+      `게시물 ${data.profile.posts.toLocaleString()} · 팔로워 ${data.profile.followers.toLocaleString()}<br>` +
       `<span class="pv-chips">시작 칩: ${data.startingChips.toLocaleString()}</span>`;
     box.appendChild(img);
     box.appendChild(info);
@@ -98,15 +112,45 @@ document.getElementById("btn-join").addEventListener("click", () => {
   const ig = document.getElementById("join-ig").value.trim();
   if (!roomCode) return showHomeError("방 코드를 입력해주세요.");
   if (!ig) return showHomeError("인스타그램 아이디를 입력해주세요.");
-  socket.emit("room:join", { roomCode, name, instagramUsername: ig }, (res) => {
+  socket.emit("room:requestJoin", { roomCode, name, instagramUsername: ig }, (res) => {
     if (!res.ok) return showHomeError(res.error);
-    enterTableScreen();
+    enterPendingScreen(res.profile, res.startingChips);
   });
+});
+
+document.getElementById("btn-fan-go").addEventListener("click", () => {
+  const roomCode = document.getElementById("join-code").value.trim().toUpperCase();
+  const url = roomCode ? `fan.html?room=${roomCode}` : "fan.html";
+  location.href = url;
+});
+
+socket.on("room:rejected", () => {
+  alert("아쉽게도 방장이 참가를 거절했어요.");
+  location.reload();
 });
 
 function enterTableScreen() {
   document.getElementById("screen-home").classList.add("hidden");
+  document.getElementById("screen-pending").classList.add("hidden");
   document.getElementById("screen-table").classList.remove("hidden");
+}
+
+function enterPendingScreen(profile, startingChips) {
+  document.getElementById("screen-home").classList.add("hidden");
+  document.getElementById("screen-pending").classList.remove("hidden");
+  const box = document.getElementById("pending-preview");
+  box.innerHTML = "";
+  const img = document.createElement("img");
+  img.src = profile.avatarUrl || FALLBACK_AVATAR;
+  img.onerror = () => (img.src = FALLBACK_AVATAR);
+  const info = document.createElement("div");
+  info.className = "pv-info";
+  info.innerHTML =
+    `<b>${profile.displayName}</b>${verifiedBadge(profile.verified)} (@${profile.username})<br>` +
+    `게시물 ${profile.posts.toLocaleString()} · 팔로워 ${profile.followers.toLocaleString()}<br>` +
+    `<span class="pv-chips">시작 칩: ${startingChips.toLocaleString()}</span>`;
+  box.appendChild(img);
+  box.appendChild(info);
 }
 
 // ---------- Table screen ----------
@@ -147,6 +191,14 @@ let lastCardDrawAt = 0;
 let lastAnnouncementAt = 0;
 
 function render(msg) {
+  if (msg.pendingApproval) {
+    // 아직 방장 승인 대기중 - 대기 화면 유지, 테이블 렌더링 생략
+    return;
+  }
+  // 승인 대기 화면에 있었는데 이제 정식 플레이어가 됐다면 테이블 화면으로 전환
+  if (!document.getElementById("screen-pending").classList.contains("hidden")) {
+    enterTableScreen();
+  }
   document.getElementById("room-code-label").textContent = msg.roomCode;
   const fanLink = `${location.origin}/fan.html?room=${msg.roomCode}`;
   const fanLinkEl = document.getElementById("fan-link");
@@ -172,12 +224,57 @@ function render(msg) {
   };
   document.getElementById("street-label").textContent = streetNames[state.street] || state.street;
 
-  renderSeats(state, msg.you);
+  renderSeats(state, msg.you, msg.verified);
   renderResult(state);
   renderControls(msg, state);
   renderMyStatus(msg, state);
   renderCardInventory(msg);
   renderNotifications(msg);
+  renderPendingPanel(msg);
+}
+
+function renderPendingPanel(msg) {
+  const panel = document.getElementById("pending-panel");
+  const list = document.getElementById("pending-list");
+  const reqs = msg.pendingRequests || [];
+  if (!msg.isHost || reqs.length === 0) {
+    panel.classList.add("hidden");
+    list.innerHTML = "";
+    return;
+  }
+  panel.classList.remove("hidden");
+  list.innerHTML = "";
+  for (const r of reqs) {
+    const item = document.createElement("div");
+    item.className = "pending-item";
+    const img = document.createElement("img");
+    img.src = r.profile.avatarUrl || FALLBACK_AVATAR;
+    img.onerror = () => (img.src = FALLBACK_AVATAR);
+    item.appendChild(img);
+
+    const info = document.createElement("div");
+    info.className = "pi-info";
+    info.innerHTML =
+      `<b>${r.name}</b>${verifiedBadge(r.profile.verified)} (@${r.profile.username})<br>` +
+      `게시물 ${r.profile.posts.toLocaleString()} · 시작칩 ${r.startingChips.toLocaleString()}`;
+    item.appendChild(info);
+
+    const actions = document.createElement("div");
+    actions.className = "pi-actions";
+    const approveBtn = document.createElement("button");
+    approveBtn.className = "btn-approve";
+    approveBtn.textContent = "승인";
+    approveBtn.addEventListener("click", () => socket.emit("room:approve", { targetId: r.socketId }));
+    const rejectBtn = document.createElement("button");
+    rejectBtn.className = "btn-reject";
+    rejectBtn.textContent = "거절";
+    rejectBtn.addEventListener("click", () => socket.emit("room:reject", { targetId: r.socketId }));
+    actions.appendChild(approveBtn);
+    actions.appendChild(rejectBtn);
+    item.appendChild(actions);
+
+    list.appendChild(item);
+  }
 }
 
 document.getElementById("btn-copy-fan-link").addEventListener("click", () => {
@@ -248,12 +345,13 @@ function renderNotifications(msg) {
   }
 }
 
-function renderSeats(state, you) {
+function renderSeats(state, you, verifiedMap) {
   const seatsEl = document.getElementById("seats");
   seatsEl.innerHTML = "";
   const players = state.players;
   const n = players.length;
   if (n === 0) return;
+  const seatVerifiedMap = verifiedMap || {};
 
   let myIndex = players.findIndex((p) => p.id === you);
   if (myIndex === -1) myIndex = 0;
@@ -292,7 +390,7 @@ function renderSeats(state, you) {
 
     const name = document.createElement("div");
     name.className = "name";
-    name.textContent = p.name + (p.id === you ? " (나)" : "");
+    name.innerHTML = escapeHtml(p.name) + verifiedBadge(seatVerifiedMap[p.id]) + (p.id === you ? " (나)" : "");
     seat.appendChild(name);
 
     const chips = document.createElement("div");

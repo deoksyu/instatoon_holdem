@@ -37,10 +37,19 @@
       <input id="join-ig" placeholder="예: deoksyu_ 또는 https://instagram.com/deoksyu_" />
       <button id="btn-preview-join" class="btn-secondary">프로필 미리보기</button>
       <div id="preview-join" class="preview-box hidden"></div>
-      <button id="btn-join" class="btn-primary">방 참가하기</button>
+      <button id="btn-join" class="btn-primary">방 참가하기 (방장 승인 필요)</button>
+      <button id="btn-fan-go" class="btn-secondary fan-go-btn">📣 팬으로 참가 (관전 · 응원만)</button>
     </div>
 
     <p id="home-error" class="error hidden"></p>
+  </div>
+</div>
+
+<div id="screen-pending" class="screen hidden">
+  <div class="card home-card" style="text-align:center;">
+    <h1>⏳ 승인 대기 중</h1>
+    <p class="subtitle">방장이 참가를 승인하면 자동으로 입장돼요.</p>
+    <div id="pending-preview" class="preview-box"></div>
   </div>
 </div>
 
@@ -48,6 +57,11 @@
   <div class="topbar">
     <div class="room-code">방 코드: <b id="room-code-label">-</b></div>
     <div class="fan-link">응원 링크: <a id="fan-link" href="#" target="_blank">-</a> <button id="btn-copy-fan-link" class="btn-tiny">복사</button></div>
+  </div>
+
+  <div id="pending-panel" class="pending-panel hidden">
+    <div class="pending-title">🚪 참가 승인 대기</div>
+    <div id="pending-list" class="pending-list"></div>
   </div>
 
   <div id="my-status" class="my-status hidden">
