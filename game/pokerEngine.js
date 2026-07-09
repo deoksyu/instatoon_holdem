@@ -159,6 +159,22 @@ class Table {
     return this.players.find((p) => p.id === id);
   }
 
+  // 본인에게만 실시간으로 알려줄 현재 최고 족보 (플랍 이후, 즉 카드 5장 이상부터 평가 가능).
+  // 폴드했거나 아직 홀카드가 없거나 프리플랍이면 null.
+  getPlayerHandInfo(playerId) {
+    const p = this.getPlayer(playerId);
+    if (!p || p.folded || !p.holeCards || p.holeCards.length === 0) return null;
+    if (p.holeCards.includes("?")) return null;
+    const allCards = [...p.holeCards, ...this.communityCards];
+    if (allCards.length < 5) return null;
+    const solved = Hand.solve([...allCards]);
+    return {
+      name: solved.name,
+      descr: solved.descr,
+      cards: solved.cards.map((c) => `${c.value}${c.suit}`),
+    };
+  }
+
   // 골든펜 기프트용: 아직 패가 살아있는 플레이어의 홀카드 2장을 전부 새로 교체
   redrawHoleCards(playerId) {
     const p = this.getPlayer(playerId);

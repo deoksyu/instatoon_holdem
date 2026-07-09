@@ -52,7 +52,7 @@ function cardEl(card, opts = {}) {
   const suit = card.slice(-1);
   const label = rankLabel(rank);
   const suitSym = SUIT[suit];
-  div.className = "card-chip playing-card " + (isRed(suit) ? "red" : "black");
+  div.className = "card-chip playing-card " + (isRed(suit) ? "red" : "black") + (opts.highlight ? " pc-highlight" : "");
 
   const cornerTL = document.createElement("div");
   cornerTL.className = "pc-corner pc-corner-tl";
@@ -384,8 +384,9 @@ function render(msg) {
   const commEl = document.getElementById("community-cards");
   commEl.innerHTML = "";
   const shown = state.communityCards || [];
+  const myBestCards = (msg.myHandInfo && msg.myHandInfo.cards) || [];
   for (let i = 0; i < 5; i++) {
-    if (i < shown.length) commEl.appendChild(cardEl(shown[i]));
+    if (i < shown.length) commEl.appendChild(cardEl(shown[i], { highlight: myBestCards.includes(shown[i]) }));
     else {
       const d = document.createElement("div");
       d.className = "card-chip empty";
@@ -407,7 +408,7 @@ function render(msg) {
   // 각 렌더 단계를 개별적으로 감싸서, 한 섹션에서 예외가 나도(예: 새 기능 버그)
   // 승인 패널 등 나머지 UI가 통째로 멈추지 않도록 방어한다.
   safeRender("renderSeats", () => renderSeats(state, msg.you, msg.verified));
-  safeRender("renderMyHoleCards", () => renderMyHoleCards(state, msg.you));
+  safeRender("renderMyHoleCards", () => renderMyHoleCards(state, msg.you, msg.myHandInfo));
   safeRender("renderResult", () => renderResult(state));
   safeRender("renderControls", () => renderControls(msg, state));
   safeRender("renderMyStatus", () => renderMyStatus(msg, state));
@@ -438,17 +439,41 @@ document.getElementById("btn-handranks-close").addEventListener("click", () => {
 });
 
 // 내 홀카드를 화면 하단에 크게 표시 (모서리 정보가 또렷하게 보이도록)
-function renderMyHoleCards(state, you) {
+const HAND_NAME_KO = {
+  "Royal Flush": "로열 플러시",
+  "Straight Flush": "스트레이트 플러시",
+  "Four of a Kind": "포카드",
+  "Full House": "풀하우스",
+  "Flush": "플러시",
+  "Straight": "스트레이트",
+  "Three of a Kind": "트리플",
+  "Two Pair": "투페어",
+  "Pair": "원페어",
+  "High Card": "하이카드",
+};
+
+function renderMyHoleCards(state, you, myHandInfo) {
   const box = document.getElementById("my-hole-cards");
   if (!box) return;
   box.innerHTML = "";
   const me = state.players.find((p) => p.id === you);
   if (!me || !me.holeCards || me.holeCards.length === 0 || me.holeCards[0] === "?") {
     box.classList.add("hidden");
-    return;
+  } else {
+    box.classList.remove("hidden");
+    const myBestCards = (myHandInfo && myHandInfo.cards) || [];
+    me.holeCards.forEach((c) => box.appendChild(cardEl(c, { highlight: myBestCards.includes(c) })));
   }
-  box.classList.remove("hidden");
-  me.holeCards.forEach((c) => box.appendChild(cardEl(c)));
+
+  const badge = document.getElementById("my-hand-badge");
+  if (badge) {
+    if (myHandInfo) {
+      badge.textContent = "✨ " + (HAND_NAME_KO[myHandInfo.name] || myHandInfo.name);
+      badge.classList.remove("hidden");
+    } else {
+      badge.classList.add("hidden");
+    }
+  }
 }
 
 function renderPendingPanel(msg) {

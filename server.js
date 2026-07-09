@@ -446,6 +446,7 @@ function broadcastState(roomCode) {
       pendingRequests: socketId === room.hostSocketId ? pendingListForHost(room) : [],
       myPeek: room.privatePeeks.get(socketId) || null,
       leaveScheduled: room.leaveScheduled.has(socketId),
+      myHandInfo: room.table.getPlayerHandInfo(socketId),
       ...commonExtra,
     });
   }
