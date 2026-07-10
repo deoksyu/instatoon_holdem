@@ -23,6 +23,15 @@ body {
   max-width: 420px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.4);
 }
+/* 카드 상단에 꽉 차게(패딩 무시하고 카드 바깥 가장자리까지) 들어가는 타이틀 배너 이미지.
+   카드 padding이 28px이므로 그만큼 음수 마진을 줘서 좌우/위쪽 가장자리까지 채운다.
+   실제 표시 크기는 420x190px(카드 max-width 기준), 레티나 대비 840x380px로 준비하면 선명하게 나온다.
+   이미지 파일이 아직 없으면(로드 실패) onerror로 자동 숨김. */
+.title-banner {
+  display: block; width: calc(100% + 56px); height: auto;
+  aspect-ratio: 420 / 190; object-fit: cover;
+  margin: -28px -28px 16px; border-radius: 16px 16px 0 0;
+}
 .home-card h1 { margin: 0 0 4px; font-size: 26px; }
 .subtitle { color: #9aa0ac; margin: 0 0 20px; font-size: 14px; }
 
