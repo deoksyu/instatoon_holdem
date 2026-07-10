@@ -124,7 +124,7 @@ input:focus { outline: 2px solid #ffcc4d; }
    평소엔 카드 위쪽 모서리(숫자/무늬)만 버튼 바 위로 살짝 보이고, 나머지는 버튼 뒤로 자연스럽게
    가려진다. 호버하면 카드가 위(열린 보드 쪽)로 올라오며 커져서 버튼을 가리지 않고 전체가 보인다. */
 .my-hand-badge {
-  position: relative; z-index: 6; text-align: center;
+  position: relative; z-index: 4; text-align: center;
   margin: 8px auto 4px; display: block; width: fit-content;
   background: linear-gradient(135deg, #ffe38a, #ffcc4d);
   color: #3a2a00; font-weight: 900; font-size: 14px;
