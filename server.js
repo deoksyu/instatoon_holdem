@@ -755,7 +755,7 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   server.listen(PORT, () => {
-    console.log(`인스타툰 홀덤 서버 실행 중: http://localhost:${PORT}`);
+    console.log(`덕슈홀덤 서버 실행 중: http://localhost:${PORT}`);
   });
 }
 
