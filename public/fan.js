@@ -87,6 +87,7 @@ const FALLBACK_AVATAR =
 
 let lastGiftBatchAt = 0;
 let lastAnnouncementAt = 0;
+let lastRenderedChatKey = null;
 
 function showFanError(msg) {
   const el = document.getElementById("fan-error");
@@ -236,4 +237,57 @@ function render(msg) {
       showToast(a.text);
     }
   }
+
+  renderChat(msg);
 }
+
+// 방 채팅(플레이어+팬 공용) 렌더링. 새 메시지가 없으면 다시 그리지 않아 스크롤 위치가 유지된다.
+function renderChat(msg) {
+  const box = document.getElementById("chat-messages");
+  if (!box) return;
+  const messages = msg.chatMessages || [];
+  const key = messages.length + ":" + (messages.length ? messages[messages.length - 1].id : "");
+  if (key === lastRenderedChatKey) return;
+  lastRenderedChatKey = key;
+
+  const wasNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 30;
+  box.innerHTML = "";
+  if (messages.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "chat-empty";
+    empty.textContent = "아직 채팅이 없어요. 첫 메시지를 남겨보세요!";
+    box.appendChild(empty);
+  } else {
+    for (const m of messages) {
+      const row = document.createElement("div");
+      row.className = "chat-msg " + (m.isFan ? "cm-fan" : "cm-player") + (m.isHost ? " cm-host" : "");
+      const nameEl = document.createElement("span");
+      nameEl.className = "cm-name";
+      nameEl.textContent = m.senderName + (m.isFan ? "(팬)" : "") + ":";
+      const textEl = document.createElement("span");
+      textEl.className = "cm-text";
+      textEl.textContent = m.text;
+      row.appendChild(nameEl);
+      row.appendChild(textEl);
+      box.appendChild(row);
+    }
+  }
+  if (wasNearBottom) box.scrollTop = box.scrollHeight;
+}
+
+document.getElementById("chat-form")?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const input = document.getElementById("chat-input");
+  const text = (input.value || "").trim();
+  if (!text) return;
+  input.disabled = true;
+  socket.emit("chat:send", { text }, (res) => {
+    input.disabled = false;
+    input.focus();
+    if (res && !res.ok) {
+      alert(res.error);
+      return;
+    }
+    input.value = "";
+  });
+});

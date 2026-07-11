@@ -413,6 +413,7 @@ function render(msg) {
   safeRender("renderControls", () => renderControls(msg, state));
   safeRender("renderMyStatus", () => renderMyStatus(msg, state));
   safeRender("renderMyGiftPanel", () => renderMyGiftPanel(msg, state));
+  safeRender("renderChat", () => renderChat(msg));
   safeRender("renderNotifications", () => renderNotifications(msg));
   safeRender("renderPendingPanel", () => renderPendingPanel(msg));
 }
@@ -667,6 +668,59 @@ function renderMyGiftPanel(msg, state) {
     panel.appendChild(slot);
   }
 }
+
+// 방 채팅(플레이어+팬 공용) 렌더링. 매 상태 브로드캐스트마다 호출되지만, 새 메시지가
+// 없으면 다시 그리지 않아서 스크롤 위치나 입력 중이던 텍스트가 흔들리지 않게 한다.
+let lastRenderedChatKey = null;
+function renderChat(msg) {
+  const box = document.getElementById("chat-messages");
+  if (!box) return;
+  const messages = msg.chatMessages || [];
+  const key = messages.length + ":" + (messages.length ? messages[messages.length - 1].id : "");
+  if (key === lastRenderedChatKey) return;
+  lastRenderedChatKey = key;
+
+  const wasNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 30;
+  box.innerHTML = "";
+  if (messages.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "chat-empty";
+    empty.textContent = "아직 채팅이 없어요. 첫 메시지를 남겨보세요!";
+    box.appendChild(empty);
+  } else {
+    for (const m of messages) {
+      const row = document.createElement("div");
+      row.className = "chat-msg " + (m.isFan ? "cm-fan" : "cm-player") + (m.isHost ? " cm-host" : "");
+      const nameEl = document.createElement("span");
+      nameEl.className = "cm-name";
+      nameEl.textContent = m.senderName + (m.isFan ? "(팬)" : "") + ":";
+      const textEl = document.createElement("span");
+      textEl.className = "cm-text";
+      textEl.textContent = m.text;
+      row.appendChild(nameEl);
+      row.appendChild(textEl);
+      box.appendChild(row);
+    }
+  }
+  if (wasNearBottom) box.scrollTop = box.scrollHeight;
+}
+
+document.getElementById("chat-form")?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const input = document.getElementById("chat-input");
+  const text = (input.value || "").trim();
+  if (!text) return;
+  input.disabled = true;
+  socket.emit("chat:send", { text }, (res) => {
+    input.disabled = false;
+    input.focus();
+    if (res && !res.ok) {
+      alert(res.error);
+      return;
+    }
+    input.value = "";
+  });
+});
 
 function useGift(card, state) {
   let targetPlayerId = null;

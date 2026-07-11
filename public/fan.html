@@ -36,6 +36,14 @@
   <div id="fan-player-list" class="fan-player-list"></div>
 
   <div id="fan-toast" class="fan-toast hidden"></div>
+
+  <div id="chat-panel" class="chat-panel">
+    <div id="chat-messages" class="chat-messages"></div>
+    <form id="chat-form" class="chat-form">
+      <input id="chat-input" type="text" maxlength="200" placeholder="메시지 입력..." autocomplete="off">
+      <button type="submit" class="btn-tiny">전송</button>
+    </form>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>

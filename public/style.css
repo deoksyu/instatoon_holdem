@@ -446,6 +446,42 @@ input:focus { outline: 2px solid #ffcc4d; }
 .gt-cheer { font-size: 11px; color: #ffcc4d; margin-bottom: 4px; }
 .gt-desc { font-size: 11px; color: #cdd1da; line-height: 1.5; white-space: pre-line; }
 
+/* 화면 좌하단에 항상 떠있는 고정 채팅 패널 (우하단 기프트 패널과 대칭).
+   플레이어+팬이 함께 쓰는 공용 채팅. viewport 기준 fixed라서 테이블 레이아웃과 무관하게 항상 같은 자리. */
+.chat-panel {
+  position: fixed; left: 16px; bottom: 96px; z-index: 40;
+  width: min(300px, calc(100vw - 32px)); max-height: 260px;
+  display: flex; flex-direction: column;
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.18); border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 12px; max-height: 200px; min-height: 70px;
+}
+.chat-msg { line-height: 1.4; word-break: break-word; }
+.chat-msg .cm-name { font-weight: 700; margin-right: 4px; }
+.chat-msg.cm-player .cm-name { color: #9be6b8; }
+.chat-msg.cm-fan .cm-name { color: #d8b4ff; }
+.chat-msg.cm-host .cm-name::after { content: " 👑"; }
+.chat-msg .cm-text { color: #f2f2f2; }
+.chat-empty { color: #7d8290; font-size: 11px; padding: 4px 2px; }
+.chat-form {
+  display: flex; gap: 6px; padding: 6px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+.chat-form input {
+  flex: 1; min-width: 0; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px; padding: 6px 8px; color: #fff; font-size: 12px;
+}
+.chat-form input::placeholder { color: #7d8290; }
+.chat-form button {
+  border: none; border-radius: 6px; padding: 0 12px; font-size: 11px; font-weight: 800;
+  background: #ffcc4d; color: #1e2029; cursor: pointer;
+}
+
 .btn-leave {
   border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700;
   background: #3a2530; color: #ff9d9d; cursor: pointer; margin-left: 8px;

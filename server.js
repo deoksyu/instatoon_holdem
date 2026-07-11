@@ -103,8 +103,12 @@ function newRoom(table) {
     lastResolvedHandNumber: 0,
     lastGiftBatch: null,
     lastAnnouncement: null,
+    chatMessages: [],           // 방 채팅 로그 (플레이어+팬 공용, 최근 것만 유지)
   };
 }
+
+const CHAT_HISTORY_LIMIT = 50;
+const CHAT_MAX_LEN = 200;
 
 // 보유 중인(미사용) 패시브 기프트 개수
 function countPassive(room, playerId, effectId) {
@@ -432,6 +436,7 @@ function broadcastState(roomCode) {
     lastAnnouncement: room.lastAnnouncement,
     cheerThreshold: 21,
     maxPlayers: MAX_PLAYERS,
+    chatMessages: room.chatMessages,
   };
 
   for (const socketId of room.sockets.keys()) {
@@ -606,6 +611,45 @@ io.on("connection", (socket) => {
     if (!room.table.getPlayer(targetPlayerId)) return;
     const cur = room.cheerCounts.get(targetPlayerId) || 0;
     room.cheerCounts.set(targetPlayerId, cur + 1);
+    broadcastState(roomCode);
+  });
+
+  // ---- 채팅: 방에 있는 플레이어+팬 전원이 함께 쓰는 공용 채팅 ----
+  socket.on("chat:send", ({ text }, cb) => {
+    const roomCode = roomOfSocket(socket.id);
+    const room = rooms.get(roomCode);
+    if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
+
+    const isFan = room.fans.has(socket.id);
+    const isPlayer = room.sockets.has(socket.id);
+    if (!isFan && !isPlayer) {
+      return cb?.({ ok: false, error: "채팅은 참가 승인 후 이용할 수 있어요." });
+    }
+
+    const trimmed = (text || "").trim();
+    if (!trimmed) return cb?.({ ok: false, error: "메시지를 입력해주세요." });
+    if (trimmed.length > CHAT_MAX_LEN) {
+      return cb?.({ ok: false, error: `메시지는 ${CHAT_MAX_LEN}자 이하로 입력해주세요.` });
+    }
+
+    const senderName = isFan
+      ? room.fans.get(socket.id)?.name || "이름없는 팬"
+      : room.sockets.get(socket.id)?.name || room.table.getPlayer(socket.id)?.name || "플레이어";
+
+    const message = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      senderId: socket.id,
+      senderName,
+      isFan,
+      isHost: room.hostSocketId === socket.id,
+      text: trimmed,
+      at: Date.now(),
+    };
+    room.chatMessages.push(message);
+    if (room.chatMessages.length > CHAT_HISTORY_LIMIT) {
+      room.chatMessages.splice(0, room.chatMessages.length - CHAT_HISTORY_LIMIT);
+    }
+    cb?.({ ok: true });
     broadcastState(roomCode);
   });
 
