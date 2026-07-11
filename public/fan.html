@@ -37,7 +37,12 @@
 
   <div id="fan-toast" class="fan-toast hidden"></div>
 
-  <div id="chat-panel" class="chat-panel">
+  <button id="chat-toggle-btn" class="chat-toggle-btn" type="button" aria-label="채팅 열기">💬</button>
+  <div id="chat-panel" class="chat-panel collapsed">
+    <div class="chat-header">
+      <span>💬 채팅</span>
+      <button id="chat-collapse-btn" class="chat-collapse-btn" type="button" aria-label="채팅 접기">✕</button>
+    </div>
     <div id="chat-messages" class="chat-messages"></div>
     <form id="chat-form" class="chat-form">
       <input id="chat-input" type="text" maxlength="200" placeholder="메시지 입력..." autocomplete="off">

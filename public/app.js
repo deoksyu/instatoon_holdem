@@ -722,6 +722,23 @@ document.getElementById("chat-form")?.addEventListener("submit", (e) => {
   });
 });
 
+// 채팅 접기/펼치기 토글 (좌하단 아이콘 <-> 패널)
+(() => {
+  const toggleBtn = document.getElementById("chat-toggle-btn");
+  const panel = document.getElementById("chat-panel");
+  const collapseBtn = document.getElementById("chat-collapse-btn");
+  if (!toggleBtn || !panel) return;
+  toggleBtn.addEventListener("click", () => {
+    panel.classList.remove("collapsed");
+    toggleBtn.classList.add("hidden");
+    document.getElementById("chat-input")?.focus();
+  });
+  collapseBtn?.addEventListener("click", () => {
+    panel.classList.add("collapsed");
+    toggleBtn.classList.remove("hidden");
+  });
+})();
+
 function useGift(card, state) {
   let targetPlayerId = null;
   if (card.effectId === "peek_allin_card") {
