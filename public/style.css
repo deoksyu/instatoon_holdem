@@ -276,8 +276,8 @@ input:focus { outline: 2px solid #ffcc4d; }
    ring_*.png는 240x240 캔버스에 중앙 투명 구멍(지름 152px)로 그려져 있어,
    85px로 축소 표시하면 구멍이 정확히 54px(아바타 크기)로 맞아떨어진다. */
 .avatar-follower-ring {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, calc(-50% - 3px));
-  width: 83px; height: 83px; pointer-events: none;
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, calc(-50% - 2px));
+  width: 82px; height: 82px; pointer-events: none;
   background-size: contain; background-repeat: no-repeat; background-position: center;
   z-index: 2;
 }
