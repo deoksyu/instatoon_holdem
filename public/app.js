@@ -500,24 +500,26 @@ function renderSettingsModalBody() {
   wrap.className = "settings-section";
   wrap.innerHTML = `
     <div class="settings-section-title">블라인드 / 리바인</div>
-    <div class="settings-form-row">
-      <label for="settings-sb">스몰 블라인드</label>
-      <input type="number" id="settings-sb" min="1" step="1" value="${pending?.smallBlind ?? curSb}">
-    </div>
-    <div class="settings-form-row">
-      <label for="settings-bb">빅 블라인드</label>
-      <input type="number" id="settings-bb" min="1" step="1" value="${pending?.bigBlind ?? curBb}">
-    </div>
-    <div class="settings-form-row">
-      <label for="settings-rebuy-count">리바인 횟수</label>
-      <input type="number" id="settings-rebuy-count" min="0" step="1" value="${pending?.maxRebuys ?? curMr}">
-    </div>
-    <div class="settings-form-row">
-      <label for="settings-rebuy-amount">리바인 액수</label>
-      <input type="number" id="settings-rebuy-amount" min="0" step="1" value="${pending?.rebuyAmount ?? curRa}">
+    <div class="settings-form-grid">
+      <div class="settings-form-item">
+        <label for="settings-sb" title="스몰 블라인드">SB</label>
+        <input type="number" id="settings-sb" min="1" step="1" value="${pending?.smallBlind ?? curSb}">
+      </div>
+      <div class="settings-form-item">
+        <label for="settings-bb" title="빅 블라인드">BB</label>
+        <input type="number" id="settings-bb" min="1" step="1" value="${pending?.bigBlind ?? curBb}">
+      </div>
+      <div class="settings-form-item">
+        <label for="settings-rebuy-count" title="리바인 횟수">횟수</label>
+        <input type="number" id="settings-rebuy-count" min="0" step="1" value="${pending?.maxRebuys ?? curMr}">
+      </div>
+      <div class="settings-form-item">
+        <label for="settings-rebuy-amount" title="리바인 액수">액수</label>
+        <input type="number" id="settings-rebuy-amount" min="0" step="1" value="${pending?.rebuyAmount ?? curRa}">
+      </div>
     </div>
     <div id="settings-save-status" class="settings-save-status"></div>
-    <button id="btn-settings-save" class="btn-primary" style="margin:12px 0 0;">설정 저장</button>
+    <button id="btn-settings-save" class="settings-save-btn">설정 저장</button>
   `;
   body.appendChild(wrap);
 

@@ -455,27 +455,41 @@ input:focus { outline: 2px solid #ffcc4d; }
    aspect-ratio로 이미지 비율을 고정하고, 이미지 안의 여백(상단 장식 헤더 아래 ~
    하단 붉은 트림 위)에 해당하는 위치에 내용 영역을 절대좌표로 얹는다.
    내용이 여백보다 길어지면(방장 설정 등) 이미지를 늘리는 대신 그 영역 안에서만 스크롤한다. */
+.settings-modal-wrap { display: flex; flex-direction: column; align-items: center; }
 .settings-modal {
   position: relative;
-  width: min(94vw, 460px, calc(85vh * 1.5556));
+  width: min(94vw, 480px, calc(85vh * 1.5556));
   aspect-ratio: 1400 / 900;
-  margin: 0 auto;
   background-image: url("settin.png");
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
-.settings-modal-title {
-  position: absolute; left: 0; right: 0; top: 16.5%;
-  text-align: center; color: #ffcc4d; font-weight: 800; font-size: 16px;
-  letter-spacing: 1px; text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-}
+/* 타이틀 텍스트 없이, 이미지 상단 장식 헤더 바로 아래부터 내용 영역 시작.
+   내용은 늘어나는 이미지 없이 이 안전영역 안에 맞게 구성한다(스크롤은 비상시 대비용).
+   닫기 버튼은 이미지 밖으로 빼서 안전영역을 온전히 설정 항목에 쓴다. */
 .settings-modal-content {
-  position: absolute; left: 3.2%; right: 2.9%; top: 27.5%; bottom: 4.2%;
+  position: absolute; left: 3.2%; right: 2.9%; top: 13%; bottom: 3%;
   overflow-y: auto; padding: 2px 4px;
 }
-.settings-modal .settings-close-btn {
-  display: block; margin: 14px auto 0; background: #3a2a20; color: #ffcc4d;
+.settings-modal-wrap .settings-close-btn {
+  margin: 10px 0 0; background: #3a2a20; color: #ffcc4d;
 }
+/* 블라인드/리바인 입력 4개를 2x2 그리드로 배치. 라벨을 입력창 위가 아니라 옆에 붙여서
+   (한 줄짜리 셀 2x2) 세로 공간을 이미지의 좁은 안전영역 안에 맞춘다. */
+.settings-form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin-bottom: 4px;
+}
+.settings-form-item { display: flex; align-items: center; gap: 4px; }
+.settings-form-item label { font-size: 10px; word-break: keep-all; flex-shrink: 0; }
+.settings-form-item input[type="number"] {
+  width: 100%; min-width: 0; padding: 3px 4px; border-radius: 6px; border: 1px solid #3a3f52;
+  background: #14161c; color: #fff; font-size: 12px; text-align: right; box-sizing: border-box;
+}
+.settings-save-btn {
+  display: block; margin: 2px 0 0; padding: 5px 12px; border: none; border-radius: 6px;
+  font-weight: 700; font-size: 12px; cursor: pointer; background: #ffcc4d; color: #1e2029;
+}
+.settings-save-btn:hover { background: #ffd876; }
 .pending-list { display: flex; flex-direction: column; gap: 8px; }
 .pending-item {
   display: flex; align-items: center; gap: 10px; background: #1e2029; border-radius: 8px; padding: 8px 10px;
@@ -650,10 +664,10 @@ input:focus { outline: 2px solid #ffcc4d; }
 }
 .btn-settings-open:hover { opacity: 0.85; }
 
-.settings-section { margin-bottom: 14px; }
+.settings-section { margin-bottom: 4px; }
 .settings-section:last-child { margin-bottom: 0; }
 .settings-section-title {
-  font-size: 12px; font-weight: 800; color: #ffcc4d; margin-bottom: 6px;
+  font-size: 11px; font-weight: 800; color: #ffcc4d; margin-bottom: 3px;
 }
 .settings-placeholder {
   color: #7d8290; font-size: 12px; line-height: 1.6;
@@ -669,7 +683,7 @@ input:focus { outline: 2px solid #ffcc4d; }
   background: #14161c; color: #fff; font-size: 13px; text-align: right;
 }
 .settings-save-status {
-  font-size: 12px; color: #9aa0ac; margin-top: 10px; line-height: 1.5;
+  font-size: 11px; color: #9aa0ac; margin-top: 2px; line-height: 1.4;
 }
 .settings-save-status.pending { color: #ffcc4d; font-weight: 700; }
 
@@ -681,6 +695,10 @@ input:focus { outline: 2px solid #ffcc4d; }
   background: rgba(255,255,255,0.35); color: #4a382f;
 }
 .settings-modal .settings-form-row input[type="number"] {
+  background: rgba(255,255,255,0.55); border-color: #8a6a52; color: #2a1a12;
+}
+.settings-modal .settings-form-item { color: #3a231c; }
+.settings-modal .settings-form-item input[type="number"] {
   background: rgba(255,255,255,0.55); border-color: #8a6a52; color: #2a1a12;
 }
 .settings-modal .settings-save-status { color: #5a4032; }
