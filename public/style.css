@@ -339,7 +339,7 @@ input:focus { outline: 2px solid #ffcc4d; }
 
 .controls {
   position: relative; z-index: 20;
-  padding: 14px 16px 22px; background: #1F0C0B;
+  padding: 4px 16px 12px; background: #1F0C0B;
   display: flex; justify-content: center;
 }
 .host-controls, .action-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
