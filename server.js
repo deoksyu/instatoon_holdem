@@ -417,14 +417,8 @@ function applyPendingPocketPairs(room) {
   for (const playerId of [...room.pendingPocketPairs]) {
     const p = table.getPlayer(playerId);
     if (p && !p.folded && !p.sittingOut) {
+      // 판 시작 시 자동 발동이라 알림은 띄우지 않는다 (요청에 따라 무음 처리).
       table.forcePocketPair(playerId);
-      room.lastAnnouncement = {
-        type: "gift",
-        playerId,
-        playerName: p.name,
-        text: `${p.name}님이 [무릎을 꿇는 것은] 효과로 원페어를 확정받았어요!`,
-        at: Date.now(),
-      };
     }
   }
   room.pendingPocketPairs.clear();

@@ -26,17 +26,17 @@ const CATALOG = {
       effectId: "redraw_community",
       description: "사용 시 커뮤니티 카드 전체를 다시 뽑는다 (베팅 상태는 그대로 유지)",
     },
+  ],
+  SR: [
     {
       name: "선구안 위",
       emoji: "🀄",
-      color: "#ffd447",
+      color: "#b06bff",
       type: "active",
       effectId: "lock_community_color",
       description:
         "사용 시 검정/빨강 중 하나를 고르면, 이번 판 남은 커뮤니티 카드는 그 색깔로만 나온다",
     },
-  ],
-  SR: [
     {
       name: "우리팀딜러뭐함?",
       emoji: "🎩",
