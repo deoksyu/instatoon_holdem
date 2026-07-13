@@ -74,7 +74,7 @@ input:focus { outline: 2px solid #ffcc4d; }
 #screen-table { display: flex; flex-direction: column; height: 100vh; background: #ffffff; }
 .topbar {
   display: flex; justify-content: flex-start; align-items: center;
-  padding: 16px 0 16px 18px; background: #1F0C0B; font-size: 13px; color: #aaa;
+  padding: 16px 100px 16px 18px; background: #1F0C0B; font-size: 13px; color: #aaa;
   flex-wrap: wrap; gap: 10px 8px; min-height: 96px;
 }
 /* 참가승인/족보/퇴장 버튼 3개를 한 그룹으로 묶어 헤더 우측에 정렬. 방 코드는 그대로 좌측 고정. */
