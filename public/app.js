@@ -739,8 +739,25 @@ document.getElementById("chat-form")?.addEventListener("submit", (e) => {
   });
 })();
 
+// 상대 플레이어 1명을 프롬프트로 선택. 후보가 1명뿐이면 자동 선택, 없으면 null.
+function pickOpponent(state, promptText) {
+  const eligible = (state.players || []).filter((p) => !p.folded && p.id !== lastState?.you);
+  if (eligible.length === 0) {
+    alert("지금 지정할 수 있는 상대가 없어요.");
+    return null;
+  }
+  if (eligible.length === 1) return eligible[0].id;
+  const listText = eligible.map((p, i) => `${i + 1}. ${p.name}`).join("\n");
+  const pick = prompt(`${promptText}\n${listText}`, "1");
+  const idx = parseInt(pick, 10) - 1;
+  if (!(idx >= 0 && idx < eligible.length)) return null;
+  return eligible[idx].id;
+}
+
 function useGift(card, state) {
   let targetPlayerId = null;
+  let option = null;
+
   if (card.effectId === "peek_allin_card") {
     const eligible = (state.players || []).filter((p) => p.allIn && p.id !== lastState?.you);
     if (eligible.length === 0) return alert("지금은 올인 상태인 상대가 없어요.");
@@ -753,8 +770,26 @@ function useGift(card, state) {
       if (!(idx >= 0 && idx < eligible.length)) return;
       targetPlayerId = eligible[idx].id;
     }
+  } else if (card.effectId === "card_swap_random") {
+    targetPlayerId = pickOpponent(state, "누구와 카드를 교환할까요?");
+    if (!targetPlayerId) return;
+  } else if (card.effectId === "steal_delete_gift") {
+    targetPlayerId = pickOpponent(state, "누구의 기프트를 파괴할까요?");
+    if (!targetPlayerId) return;
+    const pick = prompt("삭제할 칸을 선택하세요 (1, 2, 3중 하나 - 빈 칸일 수도 있어요)", "1");
+    const idx = parseInt(pick, 10) - 1;
+    if (!(idx >= 0 && idx <= 2)) return;
+    option = idx;
+  } else if (card.effectId === "peek_next_attr") {
+    const pick = prompt("무엇을 미리 볼까요? (1=숫자, 2=기호)", "1");
+    option = pick === "2" ? "suit" : "rank";
+  } else if (card.effectId === "lock_community_color") {
+    const pick = prompt("어떤 색깔로 봉인할까요? (1=검정, 2=빨강)", "1");
+    if (pick !== "1" && pick !== "2") return;
+    option = pick === "2" ? "red" : "black";
   }
-  socket.emit("gift:use", { giftId: card.id, targetPlayerId }, (res) => {
+
+  socket.emit("gift:use", { giftId: card.id, targetPlayerId, option }, (res) => {
     if (!res.ok) alert(res.error);
   });
 }
@@ -847,7 +882,15 @@ function renderNotifications(msg) {
   }
   if (msg.myPeek && msg.myPeek.at && msg.myPeek.at > lastPeekAt) {
     lastPeekAt = msg.myPeek.at;
-    showFanToast(`🔍 [필살기 스크롤] ${msg.myPeek.targetName}님의 카드 한 장: ${cardLabel(msg.myPeek.card)}`);
+    const peek = msg.myPeek;
+    if (peek.kind === "next_color") {
+      showFanToast(`🔴 [선구안] 다음 커뮤니티 카드 색깔: ${peek.value}`);
+    } else if (peek.kind === "next_attr") {
+      const label = peek.attr === "suit" ? "기호" : "숫자";
+      showFanToast(`🩸 [짭륜안] 다음 커뮤니티 카드 ${label}: ${peek.value}`);
+    } else {
+      showFanToast(`🔍 [필살기 스크롤] ${peek.targetName}님의 카드 한 장: ${cardLabel(peek.card)}`);
+    }
   }
 }
 

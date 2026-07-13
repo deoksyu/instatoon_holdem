@@ -97,8 +97,11 @@ function newRoom(table) {
     cardInventory: new Map(),
     blindExempt: new Set(),      // 역전의 부적 사용자 - 다음 블라인드 면제 대기
     doubleWinFlags: new Set(),   // 트로피 사용자 - 이번 핸드 승리시 2배
-    privatePeeks: new Map(),     // 필살기 스크롤 결과 (본인에게만 보임)
+    doubleOrNothing: new Set(),  // KODEX 선물 2배인버스 사용자 - 이번 핸드 승패에 따라 2배/추가손실
+    privatePeeks: new Map(),     // 필살기 스크롤/선구안/짭륜안 결과 (본인에게만 보임)
     leaveScheduled: new Set(),   // 이번 핸드 끝나고 퇴장 예약한 플레이어
+    pendingDealerClaim: null,    // 우리팀딜러뭐함? - 다음 판 딜러로 지정될 플레이어 id
+    pendingPocketPairs: new Set(), // 무릎을 꿇는 것은 - 다음 판 원페어 확정 예약
     lastCommunityCount: 0,
     lastResolvedHandNumber: 0,
     lastGiftBatch: null,
@@ -139,6 +142,55 @@ function isRebuyEligible(room, playerId) {
 // (최대 3회) 모두 지급하고 하나의 배치로 묶어 클라이언트에 전달한다.
 const STREET_LABELS = { 3: "플랍", 4: "턴", 5: "리버" };
 
+// 게임 전체에서 미사용 상태로 해당 effectId를 보유 중이거나(다음 판 예약 포함), 대기 중인 사람이 있는지.
+// unique 카드(우리팀딜러뭐함?)를 동시에 2명 이상 보유하지 못하게 뽑기 풀에서 걸러내는 용도.
+function anyoneHoldsOrPending(room, effectId) {
+  if (room.pendingDealerClaim) return true;
+  for (const inv of room.cardInventory.values()) {
+    if (inv.some((c) => c.effectId === effectId && !c.used)) return true;
+  }
+  return false;
+}
+
+// 인스타그램 패시브: 체크포인트당 보유자 중 1명에게(딜러부터 순서) 10% 확률로,
+// 방금 공개된 커뮤니티 카드 중 하나를 그 사람 홀카드와 숫자가 맞는 "유리한" 카드로 바꿔치기.
+function applyFavorBias(room, checkpoint) {
+  const table = room.table;
+  const startIdx = table.dealerSeat >= 0 ? table.dealerSeat : 0;
+  const orderIdx = table.seatOrderFrom(startIdx);
+  const holders = orderIdx
+    .map((i) => table.players[i])
+    .filter((p) => !p.folded && !p.sittingOut && countPassive(room, p.id, "favor_flop_10pct") > 0);
+  if (holders.length === 0) return;
+  const sliceStart = checkpoint === 3 ? 0 : checkpoint === 4 ? 3 : 4;
+  const revealed = table.communityCards.slice(sliceStart, checkpoint);
+  if (revealed.length === 0) return;
+
+  for (const holder of holders) {
+    if (Math.random() >= 0.1) continue;
+    const holeRanks = new Set((holder.holeCards || []).map((c) => c[0]));
+    if (holeRanks.size === 0) continue;
+    const alreadyFavorable = revealed.some((c) => holeRanks.has(c[0]));
+    if (alreadyFavorable) continue;
+    const deckIdx = table.deck.findIndex((c) => holeRanks.has(c[0]));
+    if (deckIdx === -1) continue;
+    const favorCard = table.deck.splice(deckIdx, 1)[0];
+    const replaceLocalIdx = Math.floor(Math.random() * revealed.length);
+    const globalIdx = sliceStart + replaceLocalIdx;
+    const oldCard = table.communityCards[globalIdx];
+    table.communityCards[globalIdx] = favorCard;
+    table.deck.push(oldCard);
+    room.lastAnnouncement = {
+      type: "gift",
+      playerId: holder.id,
+      playerName: holder.name,
+      text: `${holder.name}님의 [인스타그램] 효과로 커뮤니티 카드가 유리하게 바뀌었어요!`,
+      at: Date.now(),
+    };
+    break; // 체크포인트당 최대 1회만 적용
+  }
+}
+
 function drawGiftsForCommunityReveal(room) {
   const table = room.table;
   const count = table.communityCards.length;
@@ -153,7 +205,13 @@ function drawGiftsForCommunityReveal(room) {
 
   const allDraws = [];
   for (const checkpoint of checkpoints) {
-    const eligible = table.players.filter((p) => !p.folded && !p.sittingOut);
+    applyFavorBias(room, checkpoint);
+
+    // 딜러부터 순서대로 1명씩 지급 (우리팀딜러뭐함? 유니크 제약이 같은 체크포인트 내에서도 정확히 반영되도록)
+    const startIdx = table.dealerSeat >= 0 ? table.dealerSeat : 0;
+    const orderIdx = table.seatOrderFrom(startIdx);
+    const eligible = orderIdx.map((i) => table.players[i]).filter((p) => !p.folded && !p.sittingOut);
+
     for (const p of eligible) {
       const rawCount = room.cheerCounts.get(p.id) || 0;
       // 패시브 보정: 화이팅 부적(+2), 팬미팅 초대장(+5) - 중첩 가능
@@ -161,12 +219,23 @@ function drawGiftsForCommunityReveal(room) {
         rawCount +
         countPassive(room, p.id, "cheer_boost_2") * 2 +
         countPassive(room, p.id, "cheer_boost_5") * 5;
-      const card = drawCard(boosted);
+
+      const excludeEffectIds = new Set();
+      if (anyoneHoldsOrPending(room, "claim_dealer")) excludeEffectIds.add("claim_dealer");
+
+      const invBefore = room.cardInventory.get(p.id) || [];
+      const boostItem = invBefore.find((c) => c.effectId === "next_draw_sr_boost" && !c.used);
+      const srBoost = boostItem ? 10 : 0;
+
+      const card = drawCard(boosted, { excludeEffectIds, srBoost });
       card.cheerCountAtDraw = rawCount; // 표시용은 실제 응원 수 기준
       room.cheerCounts.set(p.id, 0);
-      const inv = room.cardInventory.get(p.id) || [];
+
+      let inv = room.cardInventory.get(p.id) || [];
       inv.push(card);
+      if (boostItem) inv = inv.filter((c) => c.id !== boostItem.id); // 매직 드로우는 적용 후 소모
       room.cardInventory.set(p.id, inv);
+
       allDraws.push({
         playerId: p.id,
         playerName: p.name,
@@ -209,6 +278,39 @@ function resolveHandEnd(room) {
       }
     }
     room.doubleWinFlags.clear();
+  }
+
+  // KODEX 선물 2배인버스 정산: 승리 시 2배, 패배(쇼다운까지 남았지만 못 이김) 시 추가 손실. 올인 상태였으면 무효.
+  if (room.doubleOrNothing.size > 0) {
+    for (const playerId of [...room.doubleOrNothing]) {
+      const p = table.getPlayer(playerId);
+      if (!p) { room.doubleOrNothing.delete(playerId); continue; }
+      if (p.allIn) { room.doubleOrNothing.delete(playerId); continue; } // 올인 시 무효
+      const won = winners.find((w) => w.id === playerId);
+      if (won) {
+        p.chips += won.amount;
+        room.lastAnnouncement = {
+          type: "gift",
+          playerId,
+          playerName: p.name,
+          text: `${p.name}님이 [KODEX 선물 2배인버스]로 이번 핸드 획득 칩이 2배가 됐어요!`,
+          at: Date.now(),
+        };
+      } else if (!p.folded) {
+        const penalty = Math.min(p.chips, p.totalBetInHand);
+        if (penalty > 0) {
+          p.chips -= penalty;
+          room.lastAnnouncement = {
+            type: "gift",
+            playerId,
+            playerName: p.name,
+            text: `${p.name}님이 [KODEX 선물 2배인버스]로 패배하며 칩을 추가로 잃었어요...`,
+            at: Date.now(),
+          };
+        }
+      }
+      room.doubleOrNothing.delete(playerId);
+    }
   }
 
   const topWinner = winners.length > 0 ? winners.reduce((a, b) => (b.amount > a.amount ? b : a), winners[0]) : null;
@@ -269,6 +371,17 @@ function resolveHandEnd(room) {
     }
   }
 
+  // 다음 판까지 이어져야 하는 패시브(우리팀딜러뭐함?/무릎을 꿇는 것은)는 소멸 전에 예약으로 이관.
+  for (const p of table.players) {
+    const inv = room.cardInventory.get(p.id) || [];
+    if (inv.some((c) => c.effectId === "claim_dealer" && !c.used)) {
+      room.pendingDealerClaim = p.id;
+    }
+    if (inv.some((c) => c.effectId === "force_pocket_pair" && !c.used)) {
+      room.pendingPocketPairs.add(p.id);
+    }
+  }
+
   // 패가 까지는 순간(쇼다운/폴드승리로 핸드 종료) 미사용 기프트는 전부 소멸.
   // 다음 핸드를 노리고 쌓아두지 못하게, 그 핸드 안에서 못 쓴 건 날아간다.
   for (const p of table.players) {
@@ -300,8 +413,43 @@ function applyBlindExemptions(room) {
   }
 }
 
+// 우리팀딜러뭐함? 예약 처리: startHand() 호출 "직전"에 불러서 dealerSeat를 미리 세팅해둔다.
+// startHand() 내부의 do-while이 (dealerSeat+1)로 이동하므로, 목표 인덱스보다 1 작게 세팅.
+function applyPendingDealerClaim(room) {
+  if (!room.pendingDealerClaim) return;
+  const table = room.table;
+  const idx = table.players.findIndex(
+    (p) => p.id === room.pendingDealerClaim && p.chips > 0 && !p.sittingOut
+  );
+  if (idx !== -1) {
+    const n = table.players.length;
+    table.dealerSeat = (idx - 1 + n) % n;
+  }
+  room.pendingDealerClaim = null;
+}
+
+// 무릎을 꿇는 것은 예약 처리: startHand() 호출 "직후"(홀카드가 이미 배분된 다음)에 불러서 강제 원페어 적용.
+function applyPendingPocketPairs(room) {
+  if (room.pendingPocketPairs.size === 0) return;
+  const table = room.table;
+  for (const playerId of [...room.pendingPocketPairs]) {
+    const p = table.getPlayer(playerId);
+    if (p && !p.folded && !p.sittingOut) {
+      table.forcePocketPair(playerId);
+      room.lastAnnouncement = {
+        type: "gift",
+        playerId,
+        playerName: p.name,
+        text: `${p.name}님이 [무릎을 꿇는 것은] 효과로 원페어를 확정받았어요!`,
+        at: Date.now(),
+      };
+    }
+  }
+  room.pendingPocketPairs.clear();
+}
+
 // 액티브 기프트 발동
-function applyActiveGift(room, playerId, item, targetPlayerId) {
+function applyActiveGift(room, playerId, item, targetPlayerId, option) {
   const table = room.table;
   const player = table.getPlayer(playerId);
   if (!player) throw new Error("게임에 참여 중이 아닙니다.");
@@ -324,6 +472,7 @@ function applyActiveGift(room, playerId, item, targetPlayerId) {
       if (!target.holeCards || target.holeCards.length === 0) throw new Error("훔쳐볼 카드가 없습니다.");
       const peeked = target.holeCards[Math.floor(Math.random() * target.holeCards.length)];
       room.privatePeeks.set(playerId, {
+        kind: "steal_card",
         targetId: target.id,
         targetName: target.name,
         card: peeked,
@@ -341,6 +490,112 @@ function applyActiveGift(room, playerId, item, targetPlayerId) {
     }
     case "double_win_this_hand": {
       room.doubleWinFlags.add(playerId);
+      break;
+    }
+    case "double_or_nothing": {
+      room.doubleOrNothing.add(playerId);
+      room.lastAnnouncement = {
+        type: "gift",
+        playerId,
+        playerName: player.name,
+        text: `${player.name}님이 [KODEX 선물 2배인버스]를 사용했어요! (핸드 종료 시 정산)`,
+        at: Date.now(),
+      };
+      break;
+    }
+    case "peek_next_color": {
+      if (table.street === "waiting" || table.communityCards.length >= 5) {
+        throw new Error("지금은 미리 볼 다음 커뮤니티 카드가 없습니다.");
+      }
+      const next = table.peekNextCommunityCard();
+      if (!next) throw new Error("덱에 남은 카드가 부족합니다.");
+      const isRed = next[1] === "h" || next[1] === "d";
+      room.privatePeeks.set(playerId, {
+        kind: "next_color",
+        value: isRed ? "빨강" : "검정",
+        at: Date.now(),
+      });
+      break;
+    }
+    case "peek_next_attr": {
+      if (table.street === "waiting" || table.communityCards.length >= 5) {
+        throw new Error("지금은 미리 볼 다음 커뮤니티 카드가 없습니다.");
+      }
+      const next = table.peekNextCommunityCard();
+      if (!next) throw new Error("덱에 남은 카드가 부족합니다.");
+      const attr = option === "suit" ? "suit" : "rank";
+      const SUIT_NAMES = { c: "클로버", d: "다이아", h: "하트", s: "스페이드" };
+      const value = attr === "suit" ? SUIT_NAMES[next[1]] || next[1] : next[0] === "T" ? "10" : next[0];
+      room.privatePeeks.set(playerId, {
+        kind: "next_attr",
+        attr,
+        value,
+        at: Date.now(),
+      });
+      break;
+    }
+    case "steal_delete_gift": {
+      const target = table.getPlayer(targetPlayerId);
+      if (!target || target.id === playerId) throw new Error("상대 플레이어를 선택해주세요.");
+      const slotIndex = typeof option === "number" ? option : parseInt(option, 10);
+      if (!(slotIndex >= 0 && slotIndex <= 2)) throw new Error("삭제할 칸(1~3)을 선택해주세요.");
+      const targetInv = room.cardInventory.get(target.id) || [];
+      const removed = targetInv[slotIndex];
+      if (removed) {
+        room.cardInventory.set(target.id, targetInv.filter((c) => c.id !== removed.id));
+        room.lastAnnouncement = {
+          type: "gift",
+          playerId,
+          playerName: player.name,
+          text: `${player.name}님이 [이건 이제 제껍니다]로 ${target.name}님의 기프트를 파괴했어요!`,
+          at: Date.now(),
+        };
+      } else {
+        room.lastAnnouncement = {
+          type: "gift",
+          playerId,
+          playerName: player.name,
+          text: `${player.name}님이 [이건 이제 제껍니다]를 사용했지만 빈 칸이었어요 (허탕)`,
+          at: Date.now(),
+        };
+      }
+      break;
+    }
+    case "card_swap_random": {
+      const target = table.getPlayer(targetPlayerId);
+      if (!target || target.id === playerId) throw new Error("상대 플레이어를 선택해주세요.");
+      table.swapRandomHoleCard(playerId, target.id); // 유효하지 않으면 여기서 에러 throw
+      room.lastAnnouncement = {
+        type: "gift",
+        playerId,
+        playerName: player.name,
+        text: `${player.name}님이 [훌륭한 대화수단]으로 ${target.name}님과 카드를 교환했어요!`,
+        at: Date.now(),
+      };
+      break;
+    }
+    case "redraw_community": {
+      table.redrawCommunity(); // 유효하지 않으면 여기서 에러 throw
+      room.lastAnnouncement = {
+        type: "gift",
+        playerId,
+        playerName: player.name,
+        text: `${player.name}님이 [신라천정]으로 커뮤니티 카드를 새로 뽑았어요!`,
+        at: Date.now(),
+      };
+      break;
+    }
+    case "lock_community_color": {
+      const color = option === "red" ? "red" : option === "black" ? "black" : null;
+      if (!color) throw new Error("검정 또는 빨강을 선택해주세요.");
+      table.communityColorLock = color;
+      room.lastAnnouncement = {
+        type: "gift",
+        playerId,
+        playerName: player.name,
+        text: `${player.name}님이 [선구안 위]로 이번 판 커뮤니티 카드를 ${color === "red" ? "빨강" : "검정"}으로 봉인했어요!`,
+        at: Date.now(),
+      };
       break;
     }
     default:
@@ -660,9 +915,11 @@ io.on("connection", (socket) => {
     if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
     if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 시작할 수 있습니다." });
     try {
+      applyPendingDealerClaim(room);
       room.table.startHand();
       room.lastCommunityCount = 0;
       applyBlindExemptions(room);
+      applyPendingPocketPairs(room);
       afterTableChange(room);
       cb?.({ ok: true });
       broadcastState(roomCode);
@@ -691,9 +948,11 @@ io.on("connection", (socket) => {
     if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
     if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 다음 핸드를 시작할 수 있습니다." });
     try {
+      applyPendingDealerClaim(room);
       room.table.startHand();
       room.lastCommunityCount = 0;
       applyBlindExemptions(room);
+      applyPendingPocketPairs(room);
       afterTableChange(room);
       cb?.({ ok: true });
       broadcastState(roomCode);
@@ -747,7 +1006,7 @@ io.on("connection", (socket) => {
   });
 
   // ---- 기프트 사용 (액티브) ----
-  socket.on("gift:use", ({ giftId, targetPlayerId }, cb) => {
+  socket.on("gift:use", ({ giftId, targetPlayerId, option }, cb) => {
     const roomCode = roomOfSocket(socket.id);
     const room = rooms.get(roomCode);
     if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
@@ -758,8 +1017,12 @@ io.on("connection", (socket) => {
     const item = inv.find((c) => c.id === giftId && !c.used);
     if (!item) return cb?.({ ok: false, error: "사용할 수 없는 기프트입니다." });
     if (item.type !== "active") return cb?.({ ok: false, error: "패시브 기프트는 보유만 해도 자동으로 적용돼요." });
+    // 모든 액티브 기프트는 본인 턴(행동 차례)에만 사용 가능
+    if (room.table.currentPlayer()?.id !== socket.id) {
+      return cb?.({ ok: false, error: "본인 턴에만 기프트를 사용할 수 있어요." });
+    }
     try {
-      applyActiveGift(room, socket.id, item, targetPlayerId);
+      applyActiveGift(room, socket.id, item, targetPlayerId, option);
       room.cardInventory.set(socket.id, inv.filter((c) => c.id !== giftId));
       afterTableChange(room);
       cb?.({ ok: true });
@@ -814,6 +1077,8 @@ module.exports = {
   applyBlindExemptions,
   applyActiveGift,
   afterTableChange,
+  applyPendingDealerClaim,
+  applyPendingPocketPairs,
   leaveRoomNow,
   processScheduledLeaves,
   MAX_PLAYERS,

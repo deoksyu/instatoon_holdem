@@ -95,6 +95,7 @@ class Table {
     this.dealerSeat = -1; // index into this.players
     this.deck = [];
     this.communityCards = [];
+    this.communityColorLock = null; // "red" | "black" | null - 선구안 위 효과용
     this.street = "waiting"; // waiting|preflop|flop|turn|river|showdown
     this.currentSeat = -1;
     this.currentStreetBet = 0;
@@ -145,6 +146,7 @@ class Table {
     this.handNumber += 1;
     this.communityCards = [];
     this.deck = freshDeck();
+    this.communityColorLock = null;
     this.street = "preflop";
     this.lastResult = null;
     this.log = [];
@@ -243,6 +245,87 @@ class Table {
     if (this.deck.length < 2) throw new Error("덱에 카드가 부족합니다.");
     p.holeCards = [this.deck.pop(), this.deck.pop()];
     return p.holeCards;
+  }
+
+  // 색깔 잠금(선구안 위)을 존중해서 덱에서 커뮤니티 카드 한 장을 뽑는다.
+  // 잠금이 없으면 그냥 pop(). 잠금이 있으면 끝에서부터 탐색해 해당 색깔의 첫 카드를 splice.
+  _popCommunityCard() {
+    if (!this.communityColorLock) return this.deck.pop();
+    const wantRed = this.communityColorLock === "red";
+    for (let i = this.deck.length - 1; i >= 0; i--) {
+      const suit = this.deck[i][1];
+      const isRed = suit === "h" || suit === "d";
+      if (isRed === wantRed) {
+        return this.deck.splice(i, 1)[0];
+      }
+    }
+    // 이론상 거의 발생하지 않지만, 해당 색깔 카드가 덱에 하나도 안 남았으면 그냥 pop
+    return this.deck.pop();
+  }
+
+  // 다음에 커뮤니티로 공개될 카드 1장을 미리 계산 (덱은 건드리지 않음).
+  // burn 카드 다음으로 나갈 카드가 "다음 커뮤니티 카드"다 (플랍이라도 그중 첫 장 기준).
+  peekNextCommunityCard() {
+    if (this.deck.length < 2) return null;
+    const afterBurn = this.deck.slice(0, -1);
+    if (afterBurn.length === 0) return null;
+    if (!this.communityColorLock) return afterBurn[afterBurn.length - 1];
+    const wantRed = this.communityColorLock === "red";
+    for (let i = afterBurn.length - 1; i >= 0; i--) {
+      const suit = afterBurn[i][1];
+      const isRed = suit === "h" || suit === "d";
+      if (isRed === wantRed) return afterBurn[i];
+    }
+    return afterBurn[afterBurn.length - 1];
+  }
+
+  // 무릎을 꿇는 것은: 다음 판 홀카드를 무조건 원페어로 강제 (숫자/기호는 랜덤).
+  // 덱에서 같은 숫자 카드가 2장 이상 남아있는 랭크를 찾아 교체하고, 원래 갖고 있던 카드는 덱으로 되돌린다.
+  forcePocketPair(playerId) {
+    const p = this.getPlayer(playerId);
+    if (!p || p.folded || !p.holeCards || p.holeCards.length !== 2) return false;
+    const shuffledRanks = [...RANKS].sort(() => Math.random() - 0.5);
+    for (const rank of shuffledRanks) {
+      const matches = [];
+      for (let i = 0; i < this.deck.length; i++) {
+        if (this.deck[i][0] === rank) matches.push(i);
+      }
+      if (matches.length >= 2) {
+        matches.sort((a, b) => b - a);
+        const c1 = this.deck.splice(matches[0], 1)[0];
+        const c2 = this.deck.splice(matches[1], 1)[0];
+        const old = p.holeCards;
+        p.holeCards = [c1, c2];
+        this.deck.push(...old);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // 훌륭한 대화수단: 두 플레이어의 핸드 카드 중 각자 무작위 1장씩을 서로 교환.
+  swapRandomHoleCard(playerId, targetId) {
+    const p = this.getPlayer(playerId);
+    const t = this.getPlayer(targetId);
+    if (!p || !t) throw new Error("플레이어를 찾을 수 없습니다.");
+    if (p.folded || t.folded) throw new Error("폴드한 플레이어와는 카드를 교환할 수 없습니다.");
+    if (!p.holeCards.length || !t.holeCards.length) throw new Error("교환할 카드가 없습니다.");
+    const pi = Math.floor(Math.random() * p.holeCards.length);
+    const ti = Math.floor(Math.random() * t.holeCards.length);
+    const tmp = p.holeCards[pi];
+    p.holeCards[pi] = t.holeCards[ti];
+    t.holeCards[ti] = tmp;
+  }
+
+  // 신라천정: 현재 깔린 커뮤니티 카드를 전부 덱으로 되돌리고 같은 장수만큼 새로 뽑는다.
+  redrawCommunity() {
+    if (this.communityCards.length === 0) throw new Error("아직 커뮤니티 카드가 없습니다.");
+    const count = this.communityCards.length;
+    this.deck.push(...this.communityCards);
+    this.communityCards = [];
+    for (let i = 0; i < count; i++) {
+      this.communityCards.push(this._popCommunityCard());
+    }
   }
 
   currentPlayer() {
@@ -391,11 +474,11 @@ class Table {
   _dealRemainingBoardIfNeeded() {
     if (this.communityCards.length === 0) {
       this.deck.pop(); // burn
-      this.communityCards.push(this.deck.pop(), this.deck.pop(), this.deck.pop());
+      this.communityCards.push(this._popCommunityCard(), this._popCommunityCard(), this._popCommunityCard());
     }
     while (this.communityCards.length < 5) {
       this.deck.pop(); // burn
-      this.communityCards.push(this.deck.pop());
+      this.communityCards.push(this._popCommunityCard());
     }
     this.street = "river";
   }
@@ -410,13 +493,13 @@ class Table {
 
     this.deck.pop(); // burn card
     if (this.street === "preflop") {
-      this.communityCards.push(this.deck.pop(), this.deck.pop(), this.deck.pop());
+      this.communityCards.push(this._popCommunityCard(), this._popCommunityCard(), this._popCommunityCard());
       this.street = "flop";
     } else if (this.street === "flop") {
-      this.communityCards.push(this.deck.pop());
+      this.communityCards.push(this._popCommunityCard());
       this.street = "turn";
     } else if (this.street === "turn") {
-      this.communityCards.push(this.deck.pop());
+      this.communityCards.push(this._popCommunityCard());
       this.street = "river";
     }
 
