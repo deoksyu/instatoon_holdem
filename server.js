@@ -62,7 +62,7 @@ app.get("/api/ig-preview", async (req, res) => {
  *   sockets: Map<socketId, {name}>              // 승인된 플레이어
  *   fans: Map<socketId, {name}>                  // 관전/응원 팬 (승인 불필요)
  *   pendingRequests: Map<socketId, {name, profile, startingChips}>  // 참가 승인 대기
- *   startingChipsMap / posts / bounties / bountyEarnings / rebuyUsed / verified: Map<playerId, ...>
+ *   startingChipsMap / posts / bounties / bountyEarnings / verified: Map<playerId, ...>
  *   eliminated: Set<playerId>
  *   cheerCounts / cardInventory: Map<playerId, ...>
  *   lastCommunityCount, lastResolvedHandNumber, lastGiftBatch, lastAnnouncement
@@ -90,7 +90,6 @@ function newRoom(table) {
     posts: new Map(),
     bounties: new Map(),
     bountyEarnings: new Map(),
-    rebuyUsed: new Map(),
     verified: new Map(),
     eliminated: new Set(),
     cheerCounts: new Map(),
@@ -124,16 +123,9 @@ function registerPlayerMeta(room, profile, startingChips, playerId) {
   room.posts.set(playerId, profile.posts);
   room.bounties.set(playerId, Math.round(startingChips * BOUNTY_RATE));
   room.bountyEarnings.set(playerId, 0);
-  room.rebuyUsed.set(playerId, false);
   room.verified.set(playerId, !!profile.verified);
   room.cheerCounts.set(playerId, 0);
   room.cardInventory.set(playerId, []);
-}
-
-function isRebuyEligible(room, playerId) {
-  if (room.posts.size === 0) return false;
-  const minPosts = Math.min(...room.posts.values());
-  return room.posts.get(playerId) === minPosts && !room.rebuyUsed.get(playerId);
 }
 
 // 커뮤니티 카드 공개 시점(3장=플랍/4장=턴/5장=리버)마다 그때 살아있는(폴드X, 관전X) 전원에게
@@ -251,7 +243,7 @@ function drawGiftsForCommunityReveal(room) {
   }
 }
 
-// 핸드가 쇼다운/폴드승리로 끝났을 때 1회만 호출: 트로피 정산 + 바운티 정산 + 무료 리바인/부활 처리
+// 핸드가 쇼다운/폴드승리로 끝났을 때 1회만 호출: 트로피 정산 + 바운티 정산 + 부활 처리
 function resolveHandEnd(room) {
   const table = room.table;
   if (table.street !== "showdown" || !table.lastResult) return;
@@ -331,18 +323,6 @@ function resolveHandEnd(room) {
         room.eliminated.delete(p.id);
         room.lastAnnouncement = {
           type: "awaken",
-          playerId: p.id,
-          playerName: p.name,
-          amount: p.chips,
-          at: Date.now(),
-        };
-      } else if (isRebuyEligible(room, p.id)) {
-        room.rebuyUsed.set(p.id, true);
-        p.chips = room.startingChipsMap.get(p.id) || 0;
-        p.sittingOut = false;
-        room.eliminated.delete(p.id);
-        room.lastAnnouncement = {
-          type: "rebuy",
           playerId: p.id,
           playerName: p.name,
           amount: p.chips,
@@ -674,10 +654,6 @@ function broadcastState(roomCode) {
   const bountyEarnings = Object.fromEntries(room.bountyEarnings);
   const verified = Object.fromEntries(room.verified);
   const fanNames = [...room.fans.values()].map((f) => f.name);
-  const rebuyInfo = {};
-  for (const id of room.posts.keys()) {
-    rebuyInfo[id] = { eligible: isRebuyEligible(room, id), used: !!room.rebuyUsed.get(id) };
-  }
 
   const commonExtra = {
     cheerCounts,
@@ -686,7 +662,6 @@ function broadcastState(roomCode) {
     verified,
     fanNames,
     fanCount: room.fans.size,
-    rebuyInfo,
     lastGiftBatch: room.lastGiftBatch,
     lastAnnouncement: room.lastAnnouncement,
     cheerThreshold: 21,
@@ -1071,7 +1046,6 @@ module.exports = {
   newRoom,
   registerPlayerMeta,
   countPassive,
-  isRebuyEligible,
   drawGiftsForCommunityReveal,
   resolveHandEnd,
   applyBlindExemptions,

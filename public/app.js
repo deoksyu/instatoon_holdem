@@ -594,8 +594,6 @@ function renderMyStatus(msg, state) {
   document.getElementById("ms-bounty").textContent = ((msg.bounties && msg.bounties[msg.you]) || 0).toLocaleString();
   document.getElementById("ms-bounty-earned").textContent = ((msg.bountyEarnings && msg.bountyEarnings[msg.you]) || 0).toLocaleString();
   document.getElementById("ms-cheer").textContent = (msg.cheerCounts && msg.cheerCounts[msg.you]) || 0;
-  const rebuy = msg.rebuyInfo && msg.rebuyInfo[msg.you];
-  document.getElementById("ms-rebuy-tag").classList.toggle("hidden", !(rebuy && rebuy.eligible));
   document.getElementById("ms-leave-tag").classList.toggle("hidden", !msg.leaveScheduled);
 }
 
@@ -872,8 +870,6 @@ function renderNotifications(msg) {
     const a = msg.lastAnnouncement;
     if (a.type === "bounty") {
       showFanToast(`💰 ${a.hunterName}님이 ${a.targetName}님을 파산시키고 현상금 ${a.amount.toLocaleString()} 획득!`);
-    } else if (a.type === "rebuy") {
-      showFanToast(`♻️ ${a.playerName}님이 무료 리바인으로 부활! (${a.amount.toLocaleString()} 칩)`);
     } else if (a.type === "awaken") {
       showFanToast(`🌟 ${a.playerName}님이 [만찢 각성카드]로 부활! (${a.amount.toLocaleString()} 칩)`);
     } else if (a.type === "gift") {

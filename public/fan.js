@@ -233,8 +233,6 @@ function render(msg) {
     const a = msg.lastAnnouncement;
     if (a.type === "bounty") {
       showToast(`💰 ${a.hunterName}님이 ${a.targetName}님을 파산시키고 현상금 ${a.amount.toLocaleString()} 획득!`);
-    } else if (a.type === "rebuy") {
-      showToast(`♻️ ${a.playerName}님이 무료 리바인으로 부활! (${a.amount.toLocaleString()} 칩)`);
     } else if (a.type === "awaken") {
       showToast(`🌟 ${a.playerName}님이 [만찢 각성카드]로 부활! (${a.amount.toLocaleString()} 칩)`);
     } else if (a.type === "gift") {
