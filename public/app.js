@@ -441,6 +441,36 @@ document.getElementById("btn-handranks-close").addEventListener("click", () => {
   document.getElementById("handranks-modal-overlay").classList.add("hidden");
 });
 
+// 설정 모달 (임시 스캐폴드): 방장/일반 참가자에 따라 보이는 메뉴가 달라야 하므로,
+// 열 때마다 lastState.isHost를 기준으로 내용을 다시 그린다. 실제 설정 항목은 추후 추가 예정.
+function renderSettingsModalBody() {
+  const body = document.getElementById("settings-modal-body");
+  if (!body) return;
+  const isHost = !!lastState?.isHost;
+  body.innerHTML = "";
+
+  const section = document.createElement("div");
+  section.className = "settings-section";
+  const title = document.createElement("div");
+  title.className = "settings-section-title";
+  title.textContent = isHost ? "방장 설정" : "참가자 설정";
+  const placeholder = document.createElement("div");
+  placeholder.className = "settings-placeholder";
+  placeholder.textContent = isHost
+    ? "여기에 방장 전용 설정 항목이 추가될 예정입니다."
+    : "여기에 참가자용 설정 항목이 추가될 예정입니다.";
+  section.appendChild(title);
+  section.appendChild(placeholder);
+  body.appendChild(section);
+}
+document.getElementById("btn-settings-open")?.addEventListener("click", () => {
+  renderSettingsModalBody();
+  document.getElementById("settings-modal-overlay").classList.remove("hidden");
+});
+document.getElementById("btn-settings-close")?.addEventListener("click", () => {
+  document.getElementById("settings-modal-overlay").classList.add("hidden");
+});
+
 // 내 홀카드를 화면 하단에 크게 표시 (모서리 정보가 또렷하게 보이도록)
 const HAND_NAME_KO = {
   "Royal Flush": "로열 플러시",
