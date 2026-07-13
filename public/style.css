@@ -115,7 +115,7 @@ input:focus { outline: 2px solid #ffcc4d; }
    텍스트를 절대좌표 오버레이한다. aspect-ratio로 이미지 원본 비율을 그대로 유지. */
 .room-code-plate {
   position: relative;
-  width: 257px; height: 75px; flex-shrink: 0;
+  width: 247px; height: 65px; flex-shrink: 0;
   background-image: url("btn_cord.png");
   background-size: contain; background-repeat: no-repeat; background-position: center;
 }
@@ -123,7 +123,7 @@ input:focus { outline: 2px solid #ffcc4d; }
   position: absolute;
   left: 39.18%; top: 14.58%; width: 57.05%; height: 71.35%;
   display: flex; align-items: center; justify-content: center;
-  color: #3D231F; font-size: 25px; font-weight: 700; text-align: center;
+  color: #3D231F; font-size: 27px; font-weight: 700; text-align: center;
   line-height: 1;
 }
 
