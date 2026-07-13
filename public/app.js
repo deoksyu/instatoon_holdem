@@ -373,8 +373,8 @@ function render(msg) {
   }
   document.getElementById("room-code-label").textContent = msg.roomCode;
   const { state } = msg;
-  document.getElementById("player-count-label").textContent =
-    `(인원 ${state.players.length}/${msg.maxPlayers || 10})`;
+  const inwonsuCount = Math.max(1, Math.min(10, state.players.length));
+  document.getElementById("player-count-label").src = `inwonsu_${inwonsuCount}.png`;
   const fanLink = `${location.origin}/fan.html?room=${msg.roomCode}`;
   const fanLinkEl = document.getElementById("fan-link");
   fanLinkEl.textContent = fanLink;
