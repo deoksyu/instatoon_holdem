@@ -250,6 +250,8 @@ function renderChat(msg) {
   const messages = msg.chatMessages || [];
   const key = messages.length + ":" + (messages.length ? messages[messages.length - 1].id : "");
   if (key === lastRenderedChatKey) return;
+  // 아예 처음 렌더(입장 직후)가 아니라 세션 도중 새로 도착한 메시지일 때만 안 읽음 알림 대상으로 취급
+  const isNewIncoming = lastRenderedChatKey !== null && messages.length > 0;
   lastRenderedChatKey = key;
 
   const wasNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 30;
@@ -275,6 +277,13 @@ function renderChat(msg) {
     }
   }
   if (wasNearBottom) box.scrollTop = box.scrollHeight;
+
+  if (isNewIncoming) {
+    const panel = document.getElementById("chat-panel");
+    if (panel && panel.classList.contains("collapsed")) {
+      document.getElementById("chat-toggle-btn")?.classList.add("has-unread");
+    }
+  }
 }
 
 document.getElementById("chat-form")?.addEventListener("submit", (e) => {
@@ -303,6 +312,7 @@ document.getElementById("chat-form")?.addEventListener("submit", (e) => {
   toggleBtn.addEventListener("click", () => {
     panel.classList.remove("collapsed");
     toggleBtn.classList.add("hidden");
+    toggleBtn.classList.remove("has-unread");
     document.getElementById("chat-input")?.focus();
   });
   collapseBtn?.addEventListener("click", () => {
