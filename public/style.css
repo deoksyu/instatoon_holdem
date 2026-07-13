@@ -526,12 +526,13 @@ input:focus { outline: 2px solid #ffcc4d; }
 /* 채팅이 접혀있을 때 그 자리에 뜨는 토글 아이콘 (같은 좌하단 위치, 다시 누르면 펼쳐짐) */
 .chat-toggle-btn {
   position: fixed; left: 16px; bottom: 96px; z-index: 40;
-  width: 46px; height: 46px; border-radius: 50%; border: none;
-  background: #ffcc4d; color: #1e2029; font-size: 20px; cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+  width: 48px; height: 48px; border: none;
+  background-image: url("btn_chat.png");
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+  background-color: transparent; color: transparent; font-size: 0; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.chat-toggle-btn:hover { background: #ffd876; }
+.chat-toggle-btn:hover { opacity: 0.85; }
 .chat-toggle-btn.hidden { display: none; }
 .chat-messages {
   flex: 1; overflow-y: auto; padding: 8px 10px;
