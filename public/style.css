@@ -82,10 +82,13 @@ input:focus { outline: 2px solid #ffcc4d; }
   position: relative;
   flex: 1;
   margin: 16px;
-  border-radius: 200px / 120px;
-  background: radial-gradient(ellipse at center, #1f6f4a 0%, #144a32 70%, #0e3423 100%);
-  border: 10px solid #3a2417;
-  box-shadow: inset 0 0 60px rgba(0,0,0,0.5);
+  /* felt.png(1600x960, 5:3)를 컨테이너 크기와 무관하게 항상 원본 비율 그대로, 찌그러짐/잘림 없이 표시.
+     컨테이너 자체는 지금까지처럼 flex:1로 화면 크기에 맞춰 늘었다 줄었다 하고,
+     그 안에서 이미지만 비율 유지한 채 최대한 크게(레터박스 여백 생기는 방식) 그려진다. */
+  background-image: url("felt.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
   min-height: 360px;
 }
 
