@@ -462,6 +462,13 @@ function applyActiveGift(room, playerId, item, targetPlayerId, option) {
     }
     case "redraw_hole_cards": {
       table.redrawHoleCards(playerId); // 유효하지 않으면 여기서 에러 throw
+      room.lastAnnouncement = {
+        type: "gift",
+        playerId,
+        playerName: player.name,
+        text: `${player.name}님이 [샤이닝 드로우]로 핸드 카드를 새로 뽑았어요!`,
+        at: Date.now(),
+      };
       break;
     }
     case "double_win_this_hand": {

@@ -26,6 +26,14 @@ const CATALOG = {
       effectId: "redraw_community",
       description: "사용 시 커뮤니티 카드 전체를 다시 뽑는다 (베팅 상태는 그대로 유지)",
     },
+    {
+      name: "샤이닝 드로우",
+      emoji: "✨",
+      color: "#ffd447",
+      type: "active",
+      effectId: "redraw_hole_cards",
+      description: "사용 시 내 핸드 카드 2장을 전부 버리고 남은 덱에서 새로 뽑는다",
+    },
   ],
   SR: [
     {
