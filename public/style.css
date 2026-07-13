@@ -616,9 +616,9 @@ input:focus { outline: 2px solid #ffcc4d; }
 }
 .btn-approve-open:hover { background: #33472f; }
 
-/* 설정 버튼: btn_setting.png 이미지 사용 */
+/* 설정 버튼: btn_setting.png 이미지 사용 (참가승인/족보/퇴장 버튼과 동일한 48px 크기) */
 .btn-settings-open {
-  width: 34px; height: 34px; border-radius: 50%; border: none;
+  width: 48px; height: 48px; border: none;
   background: url("btn_setting.png") center / contain no-repeat; background-color: transparent;
   cursor: pointer; margin-left: 8px; flex-shrink: 0; padding: 0;
 }
