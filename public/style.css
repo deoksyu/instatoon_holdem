@@ -451,25 +451,27 @@ input:focus { outline: 2px solid #ffcc4d; }
 }
 .pending-title { font-size: 15px; color: #ffcc4d; font-weight: 800; margin-bottom: 12px; }
 
-/* 설정 모달: settin.png(1400x900)를 9-슬라이스 테두리로 사용.
-   상단 123px(장식 헤더+타이틀 영역), 좌우 22px, 하단 20px(붉은 트림)는 고정,
-   가운데는 fill로 채워서 내용 길이에 따라 자연스럽게 늘어난다. */
+/* 설정 모달: settin.png(1400x900) 원본 비율을 그대로 유지한 채 배경으로 사용.
+   aspect-ratio로 이미지 비율을 고정하고, 이미지 안의 여백(상단 장식 헤더 아래 ~
+   하단 붉은 트림 위)에 해당하는 위치에 내용 영역을 절대좌표로 얹는다.
+   내용이 여백보다 길어지면(방장 설정 등) 이미지를 늘리는 대신 그 영역 안에서만 스크롤한다. */
 .settings-modal {
-  background: transparent;
-  border-radius: 0;
-  border-style: solid;
-  border-color: transparent;
-  border-width: 123px 22px 20px 22px;
-  border-image-source: url("settin.png");
-  border-image-slice: 246 44 40 44 fill;
-  border-image-repeat: stretch;
-  max-width: 460px;
-  padding: 4px 18px 18px;
-  box-shadow: none;
+  position: relative;
+  width: min(94vw, 460px, calc(85vh * 1.5556));
+  aspect-ratio: 1400 / 900;
+  margin: 0 auto;
+  background-image: url("settin.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
 }
-.settings-modal .pending-title {
-  text-align: center; margin-top: -4px; margin-bottom: 10px;
-  font-size: 16px; letter-spacing: 1px; text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+.settings-modal-title {
+  position: absolute; left: 0; right: 0; top: 16.5%;
+  text-align: center; color: #ffcc4d; font-weight: 800; font-size: 16px;
+  letter-spacing: 1px; text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+.settings-modal-content {
+  position: absolute; left: 3.2%; right: 2.9%; top: 27.5%; bottom: 4.2%;
+  overflow-y: auto; padding: 2px 4px;
 }
 .settings-modal .settings-close-btn {
   display: block; margin: 14px auto 0; background: #3a2a20; color: #ffcc4d;
