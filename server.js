@@ -128,7 +128,7 @@ function countPassive(room, playerId, effectId) {
 function registerPlayerMeta(room, profile, startingChips, playerId) {
   room.startingChipsMap.set(playerId, startingChips);
   room.posts.set(playerId, profile.posts);
-  room.followers.set(playerId, profile.followers || 0);
+  room.followers.set(playerId, Number(profile.followers) || 0);
   room.bounties.set(playerId, Math.round(startingChips * BOUNTY_RATE));
   room.bountyEarnings.set(playerId, 0);
   room.verified.set(playerId, !!profile.verified);

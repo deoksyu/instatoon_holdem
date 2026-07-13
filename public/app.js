@@ -1144,7 +1144,7 @@ let prevHandNumberForChips = null;
 
 // 팔로워 수 -> 프로필 테두리 등급 이미지 파일명. 기준 미만이면 null(테두리 없음).
 function followerRingImg(followers) {
-  const n = followers || 0;
+  const n = Number(followers) || 0;
   if (n >= 1000000) return "ring_5.png";
   if (n >= 100000) return "ring_4.png";
   if (n >= 50000) return "ring_3.png";
