@@ -451,7 +451,7 @@ input:focus { outline: 2px solid #ffcc4d; }
   display: inline-block; width: 13px; height: 13px; vertical-align: middle; margin-left: 2px;
 }
 
-.player-count { height: 50px; width: 80px; object-fit: contain; margin-left: -4px; flex-shrink: 0; }
+.player-count { height: 50px; width: 80px; object-fit: contain; margin-left: -14px; flex-shrink: 0; }
 
 /* 화면 우하단에 항상 떠있는 고정 인벤토리 패널: 반투명 사각형 안에 슬롯이 3칸으로 나뉘어 있고,
    보유한 기프트가 있으면 각 칸에 썸네일(이모지)이 채워진다. viewport 기준 fixed라서
