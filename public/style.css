@@ -350,7 +350,8 @@ input:focus { outline: 2px solid #ffcc4d; }
 }
 
 .my-status {
-  display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+  display: none !important; /* 현상금/사냥획득/응원 항목을 다 숨겨서 빈 남색 띠만 남는 부헤더라 통째로 제거 */
+  gap: 14px; flex-wrap: wrap; align-items: center;
   padding: 8px 18px; background: #191b22; font-size: 12px; color: #9aa0ac;
 }
 .my-status .ms-item b { color: #ffcc4d; }
