@@ -106,6 +106,8 @@ function newRoom(table) {
     // 저장은 됐지만 아직 적용 전인 값(다음 핸드 시작 시 applyPendingGameSettings에서 반영).
     gameSettings: { smallBlind: table.smallBlind, bigBlind: table.bigBlind, maxRebuys: 0, rebuyAmount: 0 },
     pendingGameSettings: null,
+    rebuyUsedCount: new Map(),   // 리바인: playerId -> 지금까지 사용한 리바인 횟수
+    pendingRebuyOffers: new Set(), // 파산 직후 "리바인 하시겠습니까?" 응답 대기 중인 플레이어 id
     lastCommunityCount: 0,
     lastResolvedHandNumber: 0,
     lastGiftBatch: null,
@@ -352,6 +354,11 @@ function resolveHandEnd(room) {
               at: Date.now(),
             };
           }
+        }
+        // 방장이 리바인을 설정해뒀고 아직 한도가 남았다면, 본인에게 "리바인 하시겠습니까?" 선택지를 띄운다.
+        const usedRebuys = room.rebuyUsedCount.get(p.id) || 0;
+        if (room.gameSettings.maxRebuys > 0 && usedRebuys < room.gameSettings.maxRebuys) {
+          room.pendingRebuyOffers.add(p.id);
         }
       }
     }
@@ -640,6 +647,7 @@ function leaveRoomNow(room, playerId) {
     player.sittingOut = true;
   }
   room.leaveScheduled.delete(playerId);
+  room.pendingRebuyOffers.delete(playerId);
   room.sockets.delete(playerId);
   if (room.hostSocketId === playerId) {
     room.hostSocketId = room.sockets.keys().next().value || null;
@@ -723,6 +731,12 @@ function broadcastState(roomCode) {
       myPeek: room.privatePeeks.get(socketId) || null,
       leaveScheduled: room.leaveScheduled.has(socketId),
       myHandInfo: room.table.getPlayerHandInfo(socketId),
+      rebuyOffer: room.pendingRebuyOffers.has(socketId)
+        ? {
+            rebuyAmount: room.gameSettings.rebuyAmount,
+            remaining: room.gameSettings.maxRebuys - (room.rebuyUsedCount.get(socketId) || 0),
+          }
+        : null,
       ...commonExtra,
     });
   }
@@ -938,6 +952,36 @@ io.on("connection", (socket) => {
     if (!Number.isFinite(ra) || ra < 0) return cb?.({ ok: false, error: "리바인 액수를 올바르게 입력해주세요." });
 
     room.pendingGameSettings = { smallBlind: sb, bigBlind: bb, maxRebuys: mr, rebuyAmount: ra };
+    cb?.({ ok: true });
+    broadcastState(roomCode);
+  });
+
+  // 파산 후 리바인 제안에 대한 응답 (예/아니오)
+  socket.on("player:rebuy", ({ accept }, cb) => {
+    const roomCode = roomOfSocket(socket.id);
+    const room = rooms.get(roomCode);
+    if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
+    if (!room.pendingRebuyOffers.has(socket.id)) {
+      return cb?.({ ok: false, error: "리바인 대기 상태가 아닙니다." });
+    }
+    room.pendingRebuyOffers.delete(socket.id);
+
+    if (accept) {
+      const p = room.table.getPlayer(socket.id);
+      if (p) {
+        p.chips = room.gameSettings.rebuyAmount;
+        p.sittingOut = false;
+        room.eliminated.delete(socket.id);
+        room.rebuyUsedCount.set(socket.id, (room.rebuyUsedCount.get(socket.id) || 0) + 1);
+        room.lastAnnouncement = {
+          type: "gift",
+          playerId: socket.id,
+          playerName: p.name,
+          text: `${p.name}님이 리바인으로 복귀했어요! (${room.gameSettings.rebuyAmount.toLocaleString()}칩)`,
+          at: Date.now(),
+        };
+      }
+    }
     cb?.({ ok: true });
     broadcastState(roomCode);
   });

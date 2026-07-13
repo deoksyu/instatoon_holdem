@@ -115,6 +115,20 @@
     </div>
   </div>
 
+  <div id="rebuy-modal-overlay" class="pending-modal-overlay hidden">
+    <div class="pending-modal" style="max-width:340px; text-align:center;">
+      <div class="pending-title">💸 파산했어요!</div>
+      <p style="color:#9aa0ac; font-size:13px; margin-bottom:16px;">
+        리바인 하시겠습니까? (+<b id="rebuy-amount-label" style="color:#ffcc4d;">0</b>칩,
+        남은 횟수 <b id="rebuy-remaining-label" style="color:#ffcc4d;">0</b>회)
+      </p>
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button id="btn-rebuy-yes" class="btn-primary" style="margin:0;">예</button>
+        <button id="btn-rebuy-no" class="btn-secondary" style="margin:0;">아니오</button>
+      </div>
+    </div>
+  </div>
+
   <div id="my-status" class="my-status hidden">
     <div class="ms-item hidden">현상금 <b id="ms-bounty">0</b></div>
     <div class="ms-item hidden">사냥 획득 <b id="ms-bounty-earned">0</b></div>

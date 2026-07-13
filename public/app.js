@@ -418,6 +418,7 @@ function render(msg) {
   safeRender("renderChat", () => renderChat(msg));
   safeRender("renderNotifications", () => renderNotifications(msg));
   safeRender("renderPendingPanel", () => renderPendingPanel(msg));
+  safeRender("renderRebuyOffer", () => renderRebuyOffer(msg));
 }
 
 function safeRender(label, fn) {
@@ -646,6 +647,38 @@ function renderPendingPanel(msg) {
     list.appendChild(item);
   }
 }
+
+// 파산 직후 "리바인 하시겠습니까?" 모달. 서버가 msg.rebuyOffer를 내려주는 동안(응답 전까지)만 표시.
+let rebuyResponding = false;
+function renderRebuyOffer(msg) {
+  const overlay = document.getElementById("rebuy-modal-overlay");
+  if (!overlay) return;
+  if (!msg.rebuyOffer) {
+    overlay.classList.add("hidden");
+    rebuyResponding = false;
+    return;
+  }
+  if (rebuyResponding) return; // 이미 예/아니오를 누르고 응답 대기 중이면 다시 그리지 않음
+  document.getElementById("rebuy-amount-label").textContent = msg.rebuyOffer.rebuyAmount.toLocaleString();
+  document.getElementById("rebuy-remaining-label").textContent = msg.rebuyOffer.remaining;
+  overlay.classList.remove("hidden");
+}
+document.getElementById("btn-rebuy-yes")?.addEventListener("click", () => {
+  rebuyResponding = true;
+  socket.emit("player:rebuy", { accept: true }, (res) => {
+    document.getElementById("rebuy-modal-overlay").classList.add("hidden");
+    rebuyResponding = false;
+    if (!res.ok) alert(res.error);
+  });
+});
+document.getElementById("btn-rebuy-no")?.addEventListener("click", () => {
+  rebuyResponding = true;
+  socket.emit("player:rebuy", { accept: false }, (res) => {
+    document.getElementById("rebuy-modal-overlay").classList.add("hidden");
+    rebuyResponding = false;
+    if (!res.ok) alert(res.error);
+  });
+});
 
 document.getElementById("btn-leave-open").addEventListener("click", () => {
   document.getElementById("leave-modal-overlay").classList.remove("hidden");
