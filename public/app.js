@@ -739,6 +739,75 @@ document.getElementById("chat-form")?.addEventListener("submit", (e) => {
   });
 })();
 
+// ---------- 화면 암전 후 프로필을 직접 클릭해서 상대를 지정하는 타겟팅 모드 ----------
+// (검정 50% 오버레이로 화면을 어둡게 하고, 지정 가능한 상대 프로필만 오버레이 위로 밝게 노출)
+let activeTargeting = null; // { eligibleIds: Set<string>, onPick: fn(playerId) }
+
+function seatClickHandler(e) {
+  const seatEl = e.currentTarget;
+  const pid = seatEl.dataset.playerId;
+  const onPick = activeTargeting?.onPick;
+  exitTargetingMode();
+  if (onPick) onPick(pid);
+}
+
+function exitTargetingMode() {
+  activeTargeting = null;
+  document.getElementById("targeting-overlay")?.remove();
+  document.getElementById("targeting-hint")?.remove();
+  applyTargetingToSeats();
+}
+
+// renderSeats가 매번 DOM을 새로 그리기 때문에, 렌더 직후마다 이 함수로 현재 활성화된
+// 타겟팅 상태를 좌석 DOM에 다시 입혀준다 (그렇지 않으면 타겟팅 도중 상태 갱신이 오면 풀려버림).
+function applyTargetingToSeats() {
+  const seats = document.querySelectorAll("#seats .seat");
+  seats.forEach((seatEl) => {
+    seatEl.classList.remove("targetable");
+    seatEl.removeEventListener("click", seatClickHandler);
+  });
+  if (!activeTargeting) return;
+  let anyEligible = false;
+  seats.forEach((seatEl) => {
+    if (activeTargeting.eligibleIds.has(seatEl.dataset.playerId)) {
+      seatEl.classList.add("targetable");
+      seatEl.addEventListener("click", seatClickHandler);
+      anyEligible = true;
+    }
+  });
+  // 타겟팅 도중 대상이 전부 사라지면(폴드/퇴장 등) 자동으로 취소
+  if (!anyEligible) exitTargetingMode();
+}
+
+// 화면을 50% 검정으로 암전시키고, 지정 가능한 상대 프로필만 오버레이 위로 노출해서
+// 클릭으로 상대를 고르게 한다. 후보가 1명뿐이면 오버레이 없이 즉시 선택.
+function enterTargetingMode(state, hintText, onPick) {
+  const eligible = (state.players || []).filter((p) => !p.folded && p.id !== lastState?.you);
+  if (eligible.length === 0) {
+    alert("지금 지정할 수 있는 상대가 없어요.");
+    return;
+  }
+  if (eligible.length === 1) {
+    onPick(eligible[0].id);
+    return;
+  }
+  activeTargeting = { eligibleIds: new Set(eligible.map((p) => p.id)), onPick };
+
+  const overlay = document.createElement("div");
+  overlay.id = "targeting-overlay";
+  overlay.className = "targeting-overlay";
+  overlay.addEventListener("click", () => exitTargetingMode());
+  document.body.appendChild(overlay);
+
+  const hint = document.createElement("div");
+  hint.id = "targeting-hint";
+  hint.className = "targeting-hint";
+  hint.textContent = hintText + " (배경을 누르면 취소)";
+  document.body.appendChild(hint);
+
+  applyTargetingToSeats();
+}
+
 // 상대 플레이어 1명을 프롬프트로 선택. 후보가 1명뿐이면 자동 선택, 없으면 null.
 function pickOpponent(state, promptText) {
   const eligible = (state.players || []).filter((p) => !p.folded && p.id !== lastState?.you);
@@ -774,12 +843,13 @@ function useGift(card, state) {
     targetPlayerId = pickOpponent(state, "누구와 카드를 교환할까요?");
     if (!targetPlayerId) return;
   } else if (card.effectId === "steal_delete_gift") {
-    targetPlayerId = pickOpponent(state, "누구의 기프트를 파괴할까요?");
-    if (!targetPlayerId) return;
-    const pick = prompt("삭제할 칸을 선택하세요 (1, 2, 3중 하나 - 빈 칸일 수도 있어요)", "1");
-    const idx = parseInt(pick, 10) - 1;
-    if (!(idx >= 0 && idx <= 2)) return;
-    option = idx;
+    // 화면을 암전시키고 상대 프로필을 직접 클릭해서 지정 -> 서버가 그 사람 보유품 중 하나를 랜덤 파괴
+    enterTargetingMode(state, "파괴할 상대를 선택하세요", (pickedId) => {
+      socket.emit("gift:use", { giftId: card.id, targetPlayerId: pickedId, option: null }, (res) => {
+        if (!res.ok) alert(res.error);
+      });
+    });
+    return;
   } else if (card.effectId === "peek_next_attr") {
     const pick = prompt("무엇을 미리 볼까요? (1=숫자, 2=기호)", "1");
     option = pick === "2" ? "suit" : "rank";
@@ -943,6 +1013,7 @@ function renderSeats(state, you, verifiedMap, followersMap) {
 
     const seat = document.createElement("div");
     seat.className = "seat";
+    seat.dataset.playerId = p.id;
     if (p.folded) seat.classList.add("folded");
     if (p.id === state.currentPlayerId) seat.classList.add("acting");
     if (p.id === you) seat.classList.add("me");
@@ -1017,6 +1088,7 @@ function renderSeats(state, you, verifiedMap, followersMap) {
     // 내 카드는 화면 하단에 크게 별도로 보여주므로 좌석 안에서는 중복 표시하지 않는다.
     seatsEl.appendChild(seat);
   }
+  applyTargetingToSeats();
 }
 
 function renderResult(state) {

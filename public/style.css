@@ -240,6 +240,29 @@ input:focus { outline: 2px solid #ffcc4d; }
 }
 
 #seats { position: absolute; inset: 0; z-index: 5; }
+
+/* '이건 이제 제껍니다' 등 상대 지정용 타겟팅 모드: 화면을 50% 검정으로 암전시키고,
+   지정 가능한 상대의 프로필(.seat.targetable)만 오버레이보다 z-index를 높여 밝게 노출한다. */
+.targeting-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+  z-index: 90; cursor: pointer;
+}
+.targeting-hint {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 91; background: rgba(0, 0, 0, 0.75); color: #ffcc4d; font-weight: 700;
+  padding: 8px 18px; border-radius: 999px; font-size: 14px; pointer-events: none;
+  white-space: nowrap;
+}
+.seat.targetable { z-index: 91; cursor: pointer; }
+.seat.targetable .avatar-wrap { position: relative; z-index: 91; }
+.seat.targetable img.avatar {
+  box-shadow: 0 0 0 4px #ffcc4d, 0 0 22px 8px rgba(255, 204, 77, 0.85);
+  animation: targetable-pulse 1s ease-in-out infinite;
+}
+@keyframes targetable-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px #ffcc4d, 0 0 22px 8px rgba(255, 204, 77, 0.85); }
+  50% { box-shadow: 0 0 0 4px #ffe38a, 0 0 30px 12px rgba(255, 204, 77, 1); }
+}
 .seat {
   position: absolute; transform: translate(-50%, -50%);
   width: 132px; text-align: center;

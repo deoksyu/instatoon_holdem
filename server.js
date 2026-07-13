@@ -518,13 +518,13 @@ function applyActiveGift(room, playerId, item, targetPlayerId, option) {
       break;
     }
     case "steal_delete_gift": {
+      // 클라이언트에서 화면 암전 후 프로필 클릭으로 상대만 지정하고, 삭제할 항목은 서버가
+      // 그 사람이 실제로 보유 중인 것 중에서 랜덤으로 고른다 (빈 칸을 고를 일이 없음).
       const target = table.getPlayer(targetPlayerId);
       if (!target || target.id === playerId) throw new Error("상대 플레이어를 선택해주세요.");
-      const slotIndex = typeof option === "number" ? option : parseInt(option, 10);
-      if (!(slotIndex >= 0 && slotIndex <= 2)) throw new Error("삭제할 칸(1~3)을 선택해주세요.");
       const targetInv = room.cardInventory.get(target.id) || [];
-      const removed = targetInv[slotIndex];
-      if (removed) {
+      if (targetInv.length > 0) {
+        const removed = targetInv[Math.floor(Math.random() * targetInv.length)];
         room.cardInventory.set(target.id, targetInv.filter((c) => c.id !== removed.id));
         room.lastAnnouncement = {
           type: "gift",
@@ -538,7 +538,7 @@ function applyActiveGift(room, playerId, item, targetPlayerId, option) {
           type: "gift",
           playerId,
           playerName: player.name,
-          text: `${player.name}님이 [이건 이제 제껍니다]를 사용했지만 빈 칸이었어요 (허탕)`,
+          text: `${player.name}님이 [이건 이제 제껍니다]를 사용했지만 ${target.name}님은 보유한 기프트가 없었어요 (허탕)`,
           at: Date.now(),
         };
       }
