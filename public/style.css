@@ -1,7 +1,14 @@
+@font-face {
+  font-family: "NanumGodhing";
+  src: url("fonts/gothic-godhing.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-family: "NanumGodhing", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   background: #14161c;
   color: #f2f2f2;
 }
