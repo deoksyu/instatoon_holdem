@@ -1,4 +1,5 @@
 const socket = io({ transports: ["websocket"] });
+const SHOW_CHEER_UI = false; // 응원 기능 UI - 개편 전까지 임시로 숨김
 
 const VERIFIED_SVG =
   '<svg class="verified-badge" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">' +
@@ -188,30 +189,33 @@ function render(msg) {
     bounty.textContent = `현상금 ${bountyAmt.toLocaleString()}` + (earned > 0 ? ` · 사냥 ${earned.toLocaleString()}` : "");
     card.appendChild(bounty);
 
-    const cheerCount = (msg.cheerCounts && msg.cheerCounts[p.id]) || 0;
-    const threshold = msg.cheerThreshold || 21;
-    const pct = Math.min(100, Math.round((cheerCount / threshold) * 100));
+    // 응원 기능은 UI 개편 전까지 잠시 숨김 (SHOW_CHEER_UI를 true로 바꾸면 원상복구)
+    if (SHOW_CHEER_UI) {
+      const cheerCount = (msg.cheerCounts && msg.cheerCounts[p.id]) || 0;
+      const threshold = msg.cheerThreshold || 21;
+      const pct = Math.min(100, Math.round((cheerCount / threshold) * 100));
 
-    const bar = document.createElement("div");
-    bar.className = "fp-cheer-bar";
-    const fill = document.createElement("div");
-    fill.className = "fp-cheer-fill";
-    fill.style.width = pct + "%";
-    if (cheerCount > threshold) fill.style.background = "#ff5c5c";
-    bar.appendChild(fill);
-    card.appendChild(bar);
+      const bar = document.createElement("div");
+      bar.className = "fp-cheer-bar";
+      const fill = document.createElement("div");
+      fill.className = "fp-cheer-fill";
+      fill.style.width = pct + "%";
+      if (cheerCount > threshold) fill.style.background = "#ff5c5c";
+      bar.appendChild(fill);
+      card.appendChild(bar);
 
-    const countLabel = document.createElement("div");
-    countLabel.className = "fp-cheer-count";
-    countLabel.textContent = `응원 ${cheerCount} / ${threshold}` + (cheerCount > threshold ? " (버스트!)" : "");
-    card.appendChild(countLabel);
+      const countLabel = document.createElement("div");
+      countLabel.className = "fp-cheer-count";
+      countLabel.textContent = `응원 ${cheerCount} / ${threshold}` + (cheerCount > threshold ? " (버스트!)" : "");
+      card.appendChild(countLabel);
 
-    const btn = document.createElement("button");
-    btn.className = "btn-cheer";
-    btn.textContent = "📣 응원하기";
-    btn.disabled = p.sittingOut || (p.folded && state.street !== "waiting" && state.street !== "showdown");
-    btn.addEventListener("click", () => cheer(p.id));
-    card.appendChild(btn);
+      const btn = document.createElement("button");
+      btn.className = "btn-cheer";
+      btn.textContent = "📣 응원하기";
+      btn.disabled = p.sittingOut || (p.folded && state.street !== "waiting" && state.street !== "showdown");
+      btn.addEventListener("click", () => cheer(p.id));
+      card.appendChild(btn);
+    }
 
     listEl.appendChild(card);
   }

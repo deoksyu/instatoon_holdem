@@ -39,7 +39,7 @@
       <button id="btn-preview-join" class="btn-secondary">프로필 미리보기</button>
       <div id="preview-join" class="preview-box hidden"></div>
       <button id="btn-join" class="btn-primary">방 참가하기 (방장 승인 필요)</button>
-      <button id="btn-fan-go" class="btn-secondary fan-go-btn">📣 팬으로 참가 (관전 · 응원만)</button>
+      <button id="btn-fan-go" class="btn-secondary fan-go-btn hidden">📣 팬으로 참가 (관전 · 응원만)</button>
     </div>
 
     <p id="home-error" class="error hidden"></p>
@@ -57,7 +57,7 @@
 <div id="screen-table" class="screen hidden">
   <div class="topbar">
     <div class="room-code">방 코드: <b id="room-code-label">-</b> <span id="player-count-label" class="player-count"></span></div>
-    <div class="fan-link">응원 링크: <a id="fan-link" href="#" target="_blank">-</a> <button id="btn-copy-fan-link" class="btn-tiny">복사</button></div>
+    <div class="fan-link hidden">응원 링크: <a id="fan-link" href="#" target="_blank">-</a> <button id="btn-copy-fan-link" class="btn-tiny">복사</button></div>
     <button id="btn-pending-open" class="btn-approve-open">✅ 참가 승인 <span id="pending-count-badge" class="pending-count-badge hidden"></span></button>
     <button id="btn-handranks-open" class="btn-tiny">📖 족보</button>
     <button id="btn-leave-open" class="btn-leave">🚪 퇴장</button>
@@ -104,9 +104,9 @@
   </div>
 
   <div id="my-status" class="my-status hidden">
-    <div class="ms-item">현상금 <b id="ms-bounty">0</b></div>
-    <div class="ms-item">사냥 획득 <b id="ms-bounty-earned">0</b></div>
-    <div class="ms-item">응원 <b id="ms-cheer">0</b>/21</div>
+    <div class="ms-item hidden">현상금 <b id="ms-bounty">0</b></div>
+    <div class="ms-item hidden">사냥 획득 <b id="ms-bounty-earned">0</b></div>
+    <div class="ms-item hidden">응원 <b id="ms-cheer">0</b>/21</div>
     <div id="ms-rebuy-tag" class="ms-tag hidden">🔄 무료 리바인 보유</div>
     <div id="ms-leave-tag" class="leave-scheduled-tag hidden">🚪 이번 판 끝나고 퇴장 예정 <button id="btn-cancel-leave" class="btn-tiny">취소</button></div>
   </div>
