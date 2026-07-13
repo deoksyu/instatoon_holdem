@@ -1,16 +1,5 @@
 const socket = io({ transports: ["websocket"] });
 
-// 공통 설정(방장/참가자 공용, 브라우저별 개인 취향): 쇼다운 때 상대 패 공개 여부.
-// 서버와 무관한 순수 클라이언트 표시 설정이라 localStorage에 저장해 새로고침해도 유지된다.
-const SHOWDOWN_REVEAL_KEY = "holdem_showdownReveal";
-function getShowdownRevealPref() {
-  const v = localStorage.getItem(SHOWDOWN_REVEAL_KEY);
-  return v === null ? true : v === "1"; // 기본값: 지금까지처럼 켜짐(공개)
-}
-function setShowdownRevealPref(enabled) {
-  localStorage.setItem(SHOWDOWN_REVEAL_KEY, enabled ? "1" : "0");
-}
-
 const FALLBACK_AVATAR =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
@@ -462,15 +451,16 @@ function renderCommonSettingsSection(body) {
   section.innerHTML = `
     <div class="settings-section-title">공통 설정</div>
     <div class="settings-form-row">
-      <label for="settings-showdown-reveal">쇼다운 시 상대 패 공개</label>
+      <label for="settings-showdown-reveal">쇼다운 시 내 패 공개</label>
       <input type="checkbox" id="settings-showdown-reveal">
     </div>
   `;
   body.appendChild(section);
   const checkbox = section.querySelector("#settings-showdown-reveal");
-  checkbox.checked = getShowdownRevealPref();
+  // 서버가 나에 대해 기억하는 현재 값(기본값: 공개=켜짐) - 다른 사람에게는 영향 없이 내 패에만 적용된다.
+  checkbox.checked = lastState?.myShowdownRevealEnabled !== false;
   checkbox.addEventListener("change", () => {
-    setShowdownRevealPref(checkbox.checked);
+    socket.emit("player:settings:showdownReveal", { enabled: checkbox.checked });
   });
 }
 
@@ -1222,7 +1212,7 @@ function renderSeats(state, you, verifiedMap, followersMap) {
     // 상대 카드는 뒷면(?) 상태일 땐 굳이 보여주지 않고, 쇼다운으로 실제 카드가 공개됐을 때만 표시한다.
     // 좌석 하단(이름/칩/배지 아래)이 아니라 프로필 사진 바로 옆에 붙여서, 좌석이 테이블 중앙(보드) 쪽에
     // 가깝게 배치되더라도 커뮤니티 카드 쪽으로 밀려 겹치지 않게 한다.
-    if (getShowdownRevealPref() && p.id !== you && p.holeCards && p.holeCards.length && p.holeCards[0] !== "?") {
+    if (p.id !== you && p.holeCards && p.holeCards.length && p.holeCards[0] !== "?") {
       const hc = document.createElement("div");
       hc.className = "avatar-hole-cards";
       p.holeCards.forEach((c) => hc.appendChild(cardEl(c)));
@@ -1274,7 +1264,7 @@ function renderResult(state) {
     const r = state.lastResult;
     const winners = r.winners.map((w) => `${w.name} +${w.amount.toLocaleString()}`).join(", ");
     let text = "🏆 " + winners;
-    if (getShowdownRevealPref() && r.type === "showdown" && r.hands) {
+    if (r.type === "showdown" && r.hands) {
       const hands = r.hands.map((h) => `${h.name}: ${h.handName}`).join(" / ");
       text += " — " + hands;
     }

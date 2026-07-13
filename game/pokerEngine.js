@@ -585,7 +585,21 @@ class Table {
     };
   }
 
-  publicState(forPlayerId) {
+  // hideShowdownHand: 쇼다운에서도 "본인 패를 상대에게 비공개"로 설정한 playerId의 Set.
+  // 본인(forPlayerId)에게는 항상 실제 카드를 보여주고, 그 외 시청자(다른 플레이어/팬)에게만 가린다.
+  publicState(forPlayerId, hideShowdownHand) {
+    const hidden = hideShowdownHand || new Set();
+    let lastResult = this.lastResult;
+    if (lastResult && lastResult.type === "showdown" && hidden.size) {
+      lastResult = {
+        ...lastResult,
+        hands: lastResult.hands.map((h) =>
+          h.id !== forPlayerId && hidden.has(h.id)
+            ? { ...h, holeCards: h.holeCards.map(() => "?"), handName: "비공개" }
+            : h
+        ),
+      };
+    }
     return {
       handNumber: this.handNumber,
       street: this.street,
@@ -598,20 +612,24 @@ class Table {
       smallBlind: this.smallBlind,
       bigBlind: this.bigBlind,
       pot: this.players.reduce((s, p) => s + p.totalBetInHand, 0),
-      lastResult: this.lastResult,
-      players: this.players.map((p) => ({
-        id: p.id,
-        name: p.name,
-        avatarUrl: p.avatarUrl,
-        chips: p.chips,
-        folded: p.folded,
-        allIn: p.allIn,
-        betThisStreet: p.betThisStreet,
-        totalBetInHand: p.totalBetInHand,
-        sittingOut: p.sittingOut,
-        holeCards:
-          p.id === forPlayerId || this.street === "showdown" ? p.holeCards : p.holeCards.map(() => "?"),
-      })),
+      lastResult,
+      players: this.players.map((p) => {
+        const revealed =
+          p.id === forPlayerId ||
+          (this.street === "showdown" && !hidden.has(p.id));
+        return {
+          id: p.id,
+          name: p.name,
+          avatarUrl: p.avatarUrl,
+          chips: p.chips,
+          folded: p.folded,
+          allIn: p.allIn,
+          betThisStreet: p.betThisStreet,
+          totalBetInHand: p.totalBetInHand,
+          sittingOut: p.sittingOut,
+          holeCards: revealed ? p.holeCards : p.holeCards.map(() => "?"),
+        };
+      }),
     };
   }
 }

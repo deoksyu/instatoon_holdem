@@ -108,6 +108,7 @@ function newRoom(table) {
     pendingGameSettings: null,
     rebuyUsedCount: new Map(),   // 리바인: playerId -> 지금까지 사용한 리바인 횟수
     pendingRebuyOffers: new Set(), // 파산 직후 "리바인 하시겠습니까?" 응답 대기 중인 플레이어 id
+    hideShowdownHand: new Set(), // 쇼다운에서도 본인 패를 상대에게 비공개로 설정한 플레이어 id
     lastCommunityCount: 0,
     lastResolvedHandNumber: 0,
     lastGiftBatch: null,
@@ -648,6 +649,7 @@ function leaveRoomNow(room, playerId) {
   }
   room.leaveScheduled.delete(playerId);
   room.pendingRebuyOffers.delete(playerId);
+  room.hideShowdownHand.delete(playerId);
   room.sockets.delete(playerId);
   if (room.hostSocketId === playerId) {
     room.hostSocketId = room.sockets.keys().next().value || null;
@@ -723,7 +725,7 @@ function broadcastState(roomCode) {
       isFan: false,
       pendingApproval: false,
       chipRule: CHIP_RULE,
-      state: room.table.publicState(socketId),
+      state: room.table.publicState(socketId, room.hideShowdownHand),
       legalActions: room.table.legalActions(socketId),
       you: socketId,
       myCardInventory: room.cardInventory.get(socketId) || [],
@@ -737,6 +739,7 @@ function broadcastState(roomCode) {
             remaining: room.gameSettings.maxRebuys - (room.rebuyUsedCount.get(socketId) || 0),
           }
         : null,
+      myShowdownRevealEnabled: !room.hideShowdownHand.has(socketId),
       ...commonExtra,
     });
   }
@@ -751,7 +754,7 @@ function broadcastState(roomCode) {
       isFan: true,
       pendingApproval: false,
       chipRule: CHIP_RULE,
-      state: room.table.publicState(null),
+      state: room.table.publicState(null, room.hideShowdownHand),
       legalActions: [],
       you: socketId,
       myCardInventory: [],
@@ -770,7 +773,7 @@ function broadcastState(roomCode) {
       isFan: false,
       pendingApproval: true,
       chipRule: CHIP_RULE,
-      state: room.table.publicState(null),
+      state: room.table.publicState(null, room.hideShowdownHand),
       legalActions: [],
       you: socketId,
       myCardInventory: [],
@@ -952,6 +955,18 @@ io.on("connection", (socket) => {
     if (!Number.isFinite(ra) || ra < 0) return cb?.({ ok: false, error: "리바인 액수를 올바르게 입력해주세요." });
 
     room.pendingGameSettings = { smallBlind: sb, bigBlind: bb, maxRebuys: mr, rebuyAmount: ra };
+    cb?.({ ok: true });
+    broadcastState(roomCode);
+  });
+
+  // 공통 설정: 쇼다운에서도 본인 패를 상대(다른 플레이어/팬)에게 비공개로 할지 여부.
+  // 각 플레이어가 자기 자신에 대해서만 설정 - 서버가 publicState 계산 시 다른 시청자에게 마스킹한다.
+  socket.on("player:settings:showdownReveal", ({ enabled }, cb) => {
+    const roomCode = roomOfSocket(socket.id);
+    const room = rooms.get(roomCode);
+    if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
+    if (enabled) room.hideShowdownHand.delete(socket.id);
+    else room.hideShowdownHand.add(socket.id);
     cb?.({ ok: true });
     broadcastState(roomCode);
   });

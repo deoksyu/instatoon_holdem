@@ -637,6 +637,7 @@ input:focus { outline: 2px solid #ffcc4d; }
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin-bottom: 8px; font-size: 13px; color: #cdd1da;
 }
+.settings-form-row label { white-space: nowrap; }
 .settings-form-row input[type="number"] {
   width: 110px; padding: 6px 8px; border-radius: 6px; border: 1px solid #3a3f52;
   background: #14161c; color: #fff; font-size: 13px; text-align: right;
