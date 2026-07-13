@@ -249,12 +249,22 @@ input:focus { outline: 2px solid #ffcc4d; }
   width: 54px; height: 54px; border-radius: 50%; object-fit: cover;
   border: 3px solid #444; background: #333;
 }
+/* 팔로워 수 등급 테두리: 아바타(54px)를 감싸는 85px 이미지 오버레이.
+   ring_*.png는 240x240 캔버스에 중앙 투명 구멍(지름 152px)로 그려져 있어,
+   85px로 축소 표시하면 구멍이 정확히 54px(아바타 크기)로 맞아떨어진다. */
+.avatar-follower-ring {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 85px; height: 85px; pointer-events: none;
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+  z-index: 2;
+}
 .seat.acting img.avatar { border-color: #ffcc4d; box-shadow: 0 0 12px #ffcc4d; }
 .seat.folded img.avatar { opacity: 0.35; }
 .seat .dealer-chip {
   position: absolute; top: -4px; right: -4px; background: #fff; color: #111;
   font-size: 10px; font-weight: 800; border-radius: 50%; width: 20px; height: 20px;
   display: flex; align-items: center; justify-content: center;
+  z-index: 5;
 }
 .seat .name { font-size: 12px; margin-top: 4px; font-weight: 600; }
 .seat .chips { font-size: 12px; color: #ffcc4d; }

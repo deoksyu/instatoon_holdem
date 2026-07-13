@@ -88,6 +88,7 @@ function newRoom(table) {
     pendingRequests: new Map(),
     startingChipsMap: new Map(),
     posts: new Map(),
+    followers: new Map(),
     bounties: new Map(),
     bountyEarnings: new Map(),
     verified: new Map(),
@@ -121,6 +122,7 @@ function countPassive(room, playerId, effectId) {
 function registerPlayerMeta(room, profile, startingChips, playerId) {
   room.startingChipsMap.set(playerId, startingChips);
   room.posts.set(playerId, profile.posts);
+  room.followers.set(playerId, profile.followers || 0);
   room.bounties.set(playerId, Math.round(startingChips * BOUNTY_RATE));
   room.bountyEarnings.set(playerId, 0);
   room.verified.set(playerId, !!profile.verified);
@@ -653,6 +655,7 @@ function broadcastState(roomCode) {
   const bounties = Object.fromEntries(room.bounties);
   const bountyEarnings = Object.fromEntries(room.bountyEarnings);
   const verified = Object.fromEntries(room.verified);
+  const followers = Object.fromEntries(room.followers);
   const fanNames = [...room.fans.values()].map((f) => f.name);
 
   const commonExtra = {
@@ -660,6 +663,7 @@ function broadcastState(roomCode) {
     bounties,
     bountyEarnings,
     verified,
+    followers,
     fanNames,
     fanCount: room.fans.size,
     lastGiftBatch: room.lastGiftBatch,

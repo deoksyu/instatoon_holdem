@@ -409,7 +409,7 @@ function render(msg) {
 
   // 각 렌더 단계를 개별적으로 감싸서, 한 섹션에서 예외가 나도(예: 새 기능 버그)
   // 승인 패널 등 나머지 UI가 통째로 멈추지 않도록 방어한다.
-  safeRender("renderSeats", () => renderSeats(state, msg.you, msg.verified));
+  safeRender("renderSeats", () => renderSeats(state, msg.you, msg.verified, msg.followers));
   safeRender("renderMyHoleCards", () => renderMyHoleCards(state, msg.you, msg.myHandInfo));
   safeRender("renderResult", () => renderResult(state));
   safeRender("renderControls", () => renderControls(msg, state));
@@ -895,13 +895,25 @@ function renderNotifications(msg) {
 let prevBetThisStreet = {};
 let prevHandNumberForChips = null;
 
-function renderSeats(state, you, verifiedMap) {
+// 팔로워 수 -> 프로필 테두리 등급 이미지 파일명. 기준 미만이면 null(테두리 없음).
+function followerRingImg(followers) {
+  const n = followers || 0;
+  if (n >= 1000000) return "ring_5.png";
+  if (n >= 100000) return "ring_4.png";
+  if (n >= 50000) return "ring_3.png";
+  if (n >= 10000) return "ring_2.png";
+  if (n >= 1000) return "ring_1.png";
+  return null;
+}
+
+function renderSeats(state, you, verifiedMap, followersMap) {
   const seatsEl = document.getElementById("seats");
   seatsEl.innerHTML = "";
   const players = state.players;
   const n = players.length;
   if (n === 0) return;
   const seatVerifiedMap = verifiedMap || {};
+  const seatFollowersMap = followersMap || {};
 
   // 새 핸드가 시작되면 베팅 증가분 추적을 리셋 (칩 던지기 애니메이션 오작동 방지)
   if (state.handNumber !== prevHandNumberForChips) {
@@ -944,6 +956,13 @@ function renderSeats(state, you, verifiedMap) {
     img.src = p.avatarUrl || FALLBACK_AVATAR;
     img.onerror = () => (img.src = FALLBACK_AVATAR);
     avatarWrap.appendChild(img);
+    const ringImg = followerRingImg(seatFollowersMap[p.id]);
+    if (ringImg) {
+      const ring = document.createElement("div");
+      ring.className = "avatar-follower-ring";
+      ring.style.backgroundImage = `url(${ringImg})`;
+      avatarWrap.appendChild(ring);
+    }
 
     const dealerIdx = state.dealerSeat;
     if (players.indexOf(p) === dealerIdx) {
