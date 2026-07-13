@@ -449,19 +449,84 @@ function renderSettingsModalBody() {
   const isHost = !!lastState?.isHost;
   body.innerHTML = "";
 
-  const section = document.createElement("div");
-  section.className = "settings-section";
-  const title = document.createElement("div");
-  title.className = "settings-section-title";
-  title.textContent = isHost ? "방장 설정" : "참가자 설정";
-  const placeholder = document.createElement("div");
-  placeholder.className = "settings-placeholder";
-  placeholder.textContent = isHost
-    ? "여기에 방장 전용 설정 항목이 추가될 예정입니다."
-    : "여기에 참가자용 설정 항목이 추가될 예정입니다.";
-  section.appendChild(title);
-  section.appendChild(placeholder);
-  body.appendChild(section);
+  if (!isHost) {
+    const section = document.createElement("div");
+    section.className = "settings-section";
+    const title = document.createElement("div");
+    title.className = "settings-section-title";
+    title.textContent = "참가자 설정";
+    const placeholder = document.createElement("div");
+    placeholder.className = "settings-placeholder";
+    placeholder.textContent = "여기에 참가자용 설정 항목이 추가될 예정입니다.";
+    section.appendChild(title);
+    section.appendChild(placeholder);
+    body.appendChild(section);
+    return;
+  }
+
+  // 방장 설정: 블라인드 액수 / 리바인 횟수·액수. 저장 버튼을 눌러야 반영되며,
+  // 그 즉시가 아니라 "다음 핸드가 시작되는 시점"부터 실제로 적용된다 (server.js applyPendingGameSettings).
+  const gs = lastState?.gameSettings || {};
+  const pending = lastState?.pendingGameSettings || null;
+  const curSb = gs.smallBlind ?? 10;
+  const curBb = gs.bigBlind ?? 20;
+  const curMr = gs.maxRebuys ?? 0;
+  const curRa = gs.rebuyAmount ?? 0;
+
+  const wrap = document.createElement("div");
+  wrap.className = "settings-section";
+  wrap.innerHTML = `
+    <div class="settings-section-title">블라인드 / 리바인</div>
+    <div class="settings-form-row">
+      <label for="settings-sb">스몰 블라인드</label>
+      <input type="number" id="settings-sb" min="1" step="1" value="${pending?.smallBlind ?? curSb}">
+    </div>
+    <div class="settings-form-row">
+      <label for="settings-bb">빅 블라인드</label>
+      <input type="number" id="settings-bb" min="1" step="1" value="${pending?.bigBlind ?? curBb}">
+    </div>
+    <div class="settings-form-row">
+      <label for="settings-rebuy-count">리바인 횟수</label>
+      <input type="number" id="settings-rebuy-count" min="0" step="1" value="${pending?.maxRebuys ?? curMr}">
+    </div>
+    <div class="settings-form-row">
+      <label for="settings-rebuy-amount">리바인 액수</label>
+      <input type="number" id="settings-rebuy-amount" min="0" step="1" value="${pending?.rebuyAmount ?? curRa}">
+    </div>
+    <div id="settings-save-status" class="settings-save-status"></div>
+    <button id="btn-settings-save" class="btn-primary" style="margin:12px 0 0;">설정 저장</button>
+  `;
+  body.appendChild(wrap);
+
+  const statusEl = wrap.querySelector("#settings-save-status");
+  const describe = (v) =>
+    `SB ${v.smallBlind.toLocaleString()} / BB ${v.bigBlind.toLocaleString()} / 리바인 ${v.maxRebuys}회 / ${v.rebuyAmount.toLocaleString()}칩`;
+  if (pending) {
+    statusEl.textContent = `저장됨 - 다음 판부터 적용됩니다 (${describe(pending)})`;
+    statusEl.classList.add("pending");
+  } else {
+    statusEl.textContent = `현재 적용 중: ${describe({ smallBlind: curSb, bigBlind: curBb, maxRebuys: curMr, rebuyAmount: curRa })}`;
+    statusEl.classList.remove("pending");
+  }
+
+  wrap.querySelector("#btn-settings-save").addEventListener("click", () => {
+    const smallBlind = parseInt(wrap.querySelector("#settings-sb").value, 10);
+    const bigBlind = parseInt(wrap.querySelector("#settings-bb").value, 10);
+    const maxRebuys = parseInt(wrap.querySelector("#settings-rebuy-count").value, 10);
+    const rebuyAmount = parseInt(wrap.querySelector("#settings-rebuy-amount").value, 10);
+    if (![smallBlind, bigBlind, maxRebuys, rebuyAmount].every(Number.isFinite)) {
+      alert("모든 값을 숫자로 입력해주세요.");
+      return;
+    }
+    socket.emit("room:settings:save", { smallBlind, bigBlind, maxRebuys, rebuyAmount }, (res) => {
+      if (!res.ok) {
+        alert(res.error);
+        return;
+      }
+      statusEl.textContent = `저장됨 - 다음 판부터 적용됩니다 (${describe({ smallBlind, bigBlind, maxRebuys, rebuyAmount })})`;
+      statusEl.classList.add("pending");
+    });
+  });
 }
 document.getElementById("btn-settings-open")?.addEventListener("click", () => {
   renderSettingsModalBody();

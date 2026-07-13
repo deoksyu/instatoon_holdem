@@ -102,6 +102,10 @@ function newRoom(table) {
     leaveScheduled: new Set(),   // 이번 핸드 끝나고 퇴장 예약한 플레이어
     pendingDealerClaim: null,    // 우리팀딜러뭐함? - 다음 판 딜러로 지정될 플레이어 id
     pendingPocketPairs: new Set(), // 무릎을 꿇는 것은 - 다음 판 원페어 확정 예약
+    // 방장 설정(블라인드/리바인): gameSettings는 현재 적용 중인 값, pendingGameSettings는
+    // 저장은 됐지만 아직 적용 전인 값(다음 핸드 시작 시 applyPendingGameSettings에서 반영).
+    gameSettings: { smallBlind: table.smallBlind, bigBlind: table.bigBlind, maxRebuys: 0, rebuyAmount: 0 },
+    pendingGameSettings: null,
     lastCommunityCount: 0,
     lastResolvedHandNumber: 0,
     lastGiftBatch: null,
@@ -410,6 +414,17 @@ function applyPendingDealerClaim(room) {
   room.pendingDealerClaim = null;
 }
 
+// 방장 설정(블라인드/리바인) 예약 처리: startHand() 호출 "직전"에 불러서 다음 판 블라인드부터
+// 새 값이 반영되게 한다. (저장 시점이 아니라 다음 핸드 시작 시점에 적용)
+function applyPendingGameSettings(room) {
+  if (!room.pendingGameSettings) return;
+  const { smallBlind, bigBlind, maxRebuys, rebuyAmount } = room.pendingGameSettings;
+  room.table.smallBlind = smallBlind;
+  room.table.bigBlind = bigBlind;
+  room.gameSettings = { smallBlind, bigBlind, maxRebuys, rebuyAmount };
+  room.pendingGameSettings = null;
+}
+
 // 무릎을 꿇는 것은 예약 처리: startHand() 호출 "직후"(홀카드가 이미 배분된 다음)에 불러서 강제 원페어 적용.
 function applyPendingPocketPairs(room) {
   if (room.pendingPocketPairs.size === 0) return;
@@ -686,6 +701,8 @@ function broadcastState(roomCode) {
     cheerThreshold: 21,
     maxPlayers: MAX_PLAYERS,
     chatMessages: room.chatMessages,
+    gameSettings: room.gameSettings,
+    pendingGameSettings: room.pendingGameSettings,
   };
 
   for (const socketId of room.sockets.keys()) {
@@ -902,6 +919,29 @@ io.on("connection", (socket) => {
     broadcastState(roomCode);
   });
 
+  // 방장 설정(블라인드/리바인) 저장. 즉시 적용되지 않고 다음 핸드 시작 시점에 반영된다.
+  socket.on("room:settings:save", ({ smallBlind, bigBlind, maxRebuys, rebuyAmount }, cb) => {
+    const roomCode = roomOfSocket(socket.id);
+    const room = rooms.get(roomCode);
+    if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
+    if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 설정을 변경할 수 있습니다." });
+
+    const sb = parseInt(smallBlind, 10);
+    const bb = parseInt(bigBlind, 10);
+    const mr = parseInt(maxRebuys, 10);
+    const ra = parseInt(rebuyAmount, 10);
+
+    if (!Number.isFinite(sb) || sb <= 0) return cb?.({ ok: false, error: "스몰 블라인드를 올바르게 입력해주세요." });
+    if (!Number.isFinite(bb) || bb <= 0) return cb?.({ ok: false, error: "빅 블라인드를 올바르게 입력해주세요." });
+    if (bb < sb) return cb?.({ ok: false, error: "빅 블라인드는 스몰 블라인드보다 작을 수 없습니다." });
+    if (!Number.isFinite(mr) || mr < 0) return cb?.({ ok: false, error: "리바인 횟수를 올바르게 입력해주세요." });
+    if (!Number.isFinite(ra) || ra < 0) return cb?.({ ok: false, error: "리바인 액수를 올바르게 입력해주세요." });
+
+    room.pendingGameSettings = { smallBlind: sb, bigBlind: bb, maxRebuys: mr, rebuyAmount: ra };
+    cb?.({ ok: true });
+    broadcastState(roomCode);
+  });
+
   // ---- 게임 진행 ----
   socket.on("room:start", (cb) => {
     const roomCode = roomOfSocket(socket.id);
@@ -909,6 +949,7 @@ io.on("connection", (socket) => {
     if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
     if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 시작할 수 있습니다." });
     try {
+      applyPendingGameSettings(room);
       applyPendingDealerClaim(room);
       room.table.startHand();
       room.lastCommunityCount = 0;
@@ -942,6 +983,7 @@ io.on("connection", (socket) => {
     if (!room) return cb?.({ ok: false, error: "방을 찾을 수 없습니다." });
     if (room.hostSocketId !== socket.id) return cb?.({ ok: false, error: "방장만 다음 핸드를 시작할 수 있습니다." });
     try {
+      applyPendingGameSettings(room);
       applyPendingDealerClaim(room);
       room.table.startHand();
       room.lastCommunityCount = 0;
@@ -1072,6 +1114,7 @@ module.exports = {
   afterTableChange,
   applyPendingDealerClaim,
   applyPendingPocketPairs,
+  applyPendingGameSettings,
   leaveRoomNow,
   processScheduledLeaves,
   MAX_PLAYERS,

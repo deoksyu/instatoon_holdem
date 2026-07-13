@@ -628,6 +628,18 @@ input:focus { outline: 2px solid #ffcc4d; }
   color: #7d8290; font-size: 12px; line-height: 1.6;
   background: #1e2029; border-radius: 8px; padding: 12px;
 }
+.settings-form-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 8px; font-size: 13px; color: #cdd1da;
+}
+.settings-form-row input[type="number"] {
+  width: 110px; padding: 6px 8px; border-radius: 6px; border: 1px solid #3a3f52;
+  background: #14161c; color: #fff; font-size: 13px; text-align: right;
+}
+.settings-save-status {
+  font-size: 12px; color: #9aa0ac; margin-top: 10px; line-height: 1.5;
+}
+.settings-save-status.pending { color: #ffcc4d; font-weight: 700; }
 
 /* ---- 기프트 획득 대형 연출 (유희왕 카드 소환 스타일, 이미지는 추후 교체 예정) ---- */
 .gift-reveal-overlay {
