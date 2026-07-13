@@ -616,14 +616,13 @@ input:focus { outline: 2px solid #ffcc4d; }
 }
 .btn-approve-open:hover { background: #33472f; }
 
-/* 설정 버튼: 전용 이미지 나오기 전까지 임시 아이콘 버튼 (참가승인 버튼 옆) */
+/* 설정 버튼: btn_setting.png 이미지 사용 */
 .btn-settings-open {
   width: 34px; height: 34px; border-radius: 50%; border: none;
-  background: #2a2d3a; color: #ffcc4d; font-size: 16px;
-  display: flex; align-items: center; justify-content: center;
+  background: url("btn_setting.png") center / contain no-repeat; background-color: transparent;
   cursor: pointer; margin-left: 8px; flex-shrink: 0; padding: 0;
 }
-.btn-settings-open:hover { background: #363a4d; }
+.btn-settings-open:hover { opacity: 0.85; }
 
 .settings-section { margin-bottom: 14px; }
 .settings-section:last-child { margin-bottom: 0; }
