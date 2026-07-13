@@ -132,7 +132,10 @@ input:focus { outline: 2px solid #ffcc4d; }
   z-index: 10;
 }
 .cards { display: flex; gap: 6px; justify-content: center; margin-bottom: 10px; min-height: 64px; }
-.pot-label { font-weight: 700; color: #ffcc4d; font-size: 25px; }
+.pot-label {
+  font-weight: 700; color: #ffcc4d; font-size: 25px;
+  -webkit-text-stroke: 6px #fff; paint-order: stroke fill;
+}
 .street-label { font-size: 12px; color: #cdeedd; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
 
 .card-chip {
