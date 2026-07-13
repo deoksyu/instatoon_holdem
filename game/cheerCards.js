@@ -86,7 +86,6 @@ const CATALOG = {
       color: "#4d9dff",
       type: "active",
       effectId: "double_or_nothing",
-      weight: 2,
       description:
         "사용 시 이번 핸드 승리하면 획득 칩 2배, 패배하면 칩을 추가로 잃는다 (올인 시 무효)",
     },
@@ -96,7 +95,6 @@ const CATALOG = {
       color: "#4d9dff",
       type: "passive",
       effectId: "favor_flop_10pct",
-      weight: 3, // R 등급 내 25% 고정 배정 (다른 R은 2)
       description: "보유 중 이번 판 커뮤니티 카드가 나에게 유리한 카드로 나올 확률 +10%",
     },
     {
@@ -105,7 +103,6 @@ const CATALOG = {
       color: "#4d9dff",
       type: "passive",
       effectId: "next_draw_sr_boost",
-      weight: 3, // R 등급 내 25% 고정 배정 (다른 R은 2)
       description: "보유 중 바로 다음에 뽑는 기프트가 SR일 확률 +10% (적용 후 소모)",
     },
     {
@@ -114,7 +111,6 @@ const CATALOG = {
       color: "#4d9dff",
       type: "active",
       effectId: "peek_next_color",
-      weight: 2,
       description: "사용 시 바로 다음 커뮤니티 카드 1장의 색깔(검정/빨강)을 미리 본다",
     },
     {
@@ -123,8 +119,7 @@ const CATALOG = {
       color: "#4d9dff",
       type: "active",
       effectId: "steal_delete_gift",
-      weight: 2,
-      description: "사용 시 상대 1명을 지정하고, 그 사람이 보유 중인 기프트 1개를 랜덤으로 파괴",
+      description: "사용 시 상대 1명을 지정하고, 그 사람의 기프트 인벤토리 3칸 중 1칸을 지목해 삭제",
     },
   ],
   "꽝": [
@@ -168,18 +163,6 @@ function weightedPick(weights) {
 }
 
 // options: { excludeEffectIds?: Set<string>, srBoost?: number }
-// 같은 등급 안에서 카드별 weight(기본 1)에 비례해 하나를 뽑는다.
-function weightedCardPick(pool) {
-  const total = pool.reduce((sum, c) => sum + (c.weight || 1), 0);
-  let r = Math.random() * total;
-  for (const c of pool) {
-    const w = c.weight || 1;
-    if (r < w) return c;
-    r -= w;
-  }
-  return pool[pool.length - 1];
-}
-
 function drawCard(cheerCount, options = {}) {
   const { excludeEffectIds, srBoost = 0 } = options;
   const rarity = rollRarity(cheerCount, srBoost);
@@ -188,7 +171,7 @@ function drawCard(cheerCount, options = {}) {
     const filtered = pool.filter((c) => !excludeEffectIds.has(c.effectId));
     if (filtered.length > 0) pool = filtered;
   }
-  const base = weightedCardPick(pool);
+  const base = pool[Math.floor(Math.random() * pool.length)];
   return {
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     rarity,
