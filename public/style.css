@@ -417,12 +417,18 @@ input:focus { outline: 2px solid #ffcc4d; }
   border: 6px solid transparent; border-top-color: #14161c; margin-bottom: -4px; z-index: 60; pointer-events: none;
 }
 
-.fan-toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  background: #1e2029; border: 1px solid #ffcc4d; color: #fff; padding: 12px 20px;
-  border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  max-width: 90vw; text-align: center; z-index: 50;
+.toast-stack {
+  position: absolute; top: 8%; right: 4%; z-index: 50;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  max-width: 42%; pointer-events: none;
 }
+.toast-item {
+  background: #1e2029; border: 1px solid #ffcc4d; color: #fff; padding: 10px 16px;
+  border-radius: 10px; font-size: 13px; line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  max-width: 100%; text-align: left; word-break: keep-all;
+  opacity: 1; transform: translateY(0); transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast-item.toast-fade { opacity: 0; transform: translateY(-6px); }
 
 /* ---- 팬 참가 버튼 / 승인 대기 / 승인 패널 / 인증뱃지 ---- */
 .fan-go-btn { background: #33324a; color: #d8b4ff; }

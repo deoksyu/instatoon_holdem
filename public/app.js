@@ -1035,11 +1035,16 @@ function useGift(card, state) {
 }
 
 function showFanToast(text) {
-  const toast = document.getElementById("fan-toast");
-  toast.textContent = text;
-  toast.classList.remove("hidden");
-  clearTimeout(showFanToast._t);
-  showFanToast._t = setTimeout(() => toast.classList.add("hidden"), 3500);
+  const stack = document.getElementById("toast-stack");
+  if (!stack) return;
+  const item = document.createElement("div");
+  item.className = "toast-item";
+  item.textContent = text;
+  stack.appendChild(item);
+  setTimeout(() => {
+    item.classList.add("toast-fade");
+    setTimeout(() => item.remove(), 250);
+  }, 2000);
 }
 
 let lastPeekAt = 0;
