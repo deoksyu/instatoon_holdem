@@ -161,7 +161,7 @@ function applyFavorBias(room, checkpoint) {
   if (revealed.length === 0) return;
 
   for (const holder of holders) {
-    if (Math.random() >= 0.1) continue;
+    if (Math.random() >= 0.25) continue; // 인스타그램: 유리한 카드 확률 25%
     const holeRanks = new Set((holder.holeCards || []).map((c) => c[0]));
     if (holeRanks.size === 0) continue;
     const alreadyFavorable = revealed.some((c) => holeRanks.has(c[0]));
@@ -219,7 +219,7 @@ function drawGiftsForCommunityReveal(room) {
 
       const invBefore = room.cardInventory.get(p.id) || [];
       const boostItem = invBefore.find((c) => c.effectId === "next_draw_sr_boost" && !c.used);
-      const srBoost = boostItem ? 10 : 0;
+      const srBoost = boostItem ? 25 : 0; // 매직 드로우: 다음 뽑기 SR 확률 +25%p
 
       const card = drawCard(boosted, { excludeEffectIds, srBoost });
       card.cheerCountAtDraw = rawCount; // 표시용은 실제 응원 수 기준

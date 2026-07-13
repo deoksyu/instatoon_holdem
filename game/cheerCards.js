@@ -95,7 +95,7 @@ const CATALOG = {
       color: "#4d9dff",
       type: "passive",
       effectId: "favor_flop_10pct",
-      description: "보유 중 이번 판 커뮤니티 카드가 나에게 유리한 카드로 나올 확률 +10%",
+      description: "보유 중 이번 판 커뮤니티 카드가 나에게 유리한 카드로 나올 확률 +25%",
     },
     {
       name: "매직 드로우",
@@ -103,7 +103,7 @@ const CATALOG = {
       color: "#4d9dff",
       type: "passive",
       effectId: "next_draw_sr_boost",
-      description: "보유 중 바로 다음에 뽑는 기프트가 SR일 확률 +10% (적용 후 소모)",
+      description: "보유 중 바로 다음에 뽑는 기프트가 SR일 확률 +25% (적용 후 소모)",
     },
     {
       name: "선구안",
@@ -119,7 +119,7 @@ const CATALOG = {
       color: "#4d9dff",
       type: "active",
       effectId: "steal_delete_gift",
-      description: "사용 시 상대 1명을 지정하고, 그 사람의 기프트 인벤토리 3칸 중 1칸을 지목해 삭제",
+      description: "사용 시 상대 1명을 지정하고, 그 사람이 보유 중인 기프트 1개를 랜덤으로 파괴",
     },
   ],
   "꽝": [
