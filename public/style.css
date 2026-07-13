@@ -277,7 +277,7 @@ input:focus { outline: 2px solid #ffcc4d; }
    85px로 축소 표시하면 구멍이 정확히 54px(아바타 크기)로 맞아떨어진다. */
 .avatar-follower-ring {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, calc(-50% - 2px));
-  width: 82px; height: 82px; pointer-events: none;
+  width: 81px; height: 81px; pointer-events: none;
   background-size: contain; background-repeat: no-repeat; background-position: center;
   z-index: 2;
 }
