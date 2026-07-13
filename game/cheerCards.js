@@ -70,6 +70,14 @@ const CATALOG = {
       effectId: "force_pocket_pair",
       description: "보유 중 다음 판 홀카드가 무조건 원페어로 확정된다 (숫자/기호는 랜덤)",
     },
+    {
+      name: "엿보기 구멍",
+      emoji: "🕳️",
+      color: "#b06bff",
+      type: "active",
+      effectId: "peek_next_turn_card",
+      description: "사용 시 내 다음 차례인 사람의 핸드 카드 1장을 무작위로 엿본다",
+    },
   ],
   R: [
     {

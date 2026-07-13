@@ -956,6 +956,8 @@ function renderNotifications(msg) {
     } else if (peek.kind === "next_attr") {
       const label = peek.attr === "suit" ? "기호" : "숫자";
       showFanToast(`🩸 [짭륜안] 다음 커뮤니티 카드 ${label}: ${peek.value}`);
+    } else if (peek.kind === "next_turn_card") {
+      showFanToast(`🕳️ [엿보기 구멍] ${peek.targetName}님의 카드 한 장: ${cardLabel(peek.card)}`);
     } else {
       showFanToast(`🔍 [필살기 스크롤] ${peek.targetName}님의 카드 한 장: ${cardLabel(peek.card)}`);
     }

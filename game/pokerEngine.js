@@ -137,6 +137,15 @@ class Table {
     return order;
   }
 
+  // 엿보기 구멍: 특정 플레이어 기준으로 "다음 차례"(폴드하지 않은 다음 좌석)의 플레이어를 찾는다.
+  getNextActivePlayer(playerId) {
+    const idx = this.players.findIndex((p) => p.id === playerId);
+    if (idx === -1 || this.players.length < 2) return null;
+    const order = this.seatOrderFrom(idx + 1).filter((i) => i !== idx && !this.players[i].folded);
+    if (order.length === 0) return null;
+    return this.players[order[0]];
+  }
+
   canStartHand() {
     return this.players.filter((p) => p.chips > 0 && !p.sittingOut).length >= 2;
   }

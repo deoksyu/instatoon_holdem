@@ -517,6 +517,20 @@ function applyActiveGift(room, playerId, item, targetPlayerId, option) {
       });
       break;
     }
+    case "peek_next_turn_card": {
+      const next = table.getNextActivePlayer(playerId);
+      if (!next) throw new Error("엿볼 수 있는 다음 차례 상대가 없습니다.");
+      if (!next.holeCards || next.holeCards.length === 0) throw new Error("엿볼 카드가 없습니다.");
+      const peeked = next.holeCards[Math.floor(Math.random() * next.holeCards.length)];
+      room.privatePeeks.set(playerId, {
+        kind: "next_turn_card",
+        targetId: next.id,
+        targetName: next.name,
+        card: peeked,
+        at: Date.now(),
+      });
+      break;
+    }
     case "steal_delete_gift": {
       // 클라이언트에서 화면 암전 후 프로필 클릭으로 상대만 지정하고, 삭제할 항목은 서버가
       // 그 사람이 실제로 보유 중인 것 중에서 랜덤으로 고른다 (빈 칸을 고를 일이 없음).
