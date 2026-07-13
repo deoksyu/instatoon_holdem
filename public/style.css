@@ -90,7 +90,7 @@ input:focus { outline: 2px solid #ffcc4d; }
 /* 게임 시작/참가 승인/족보/퇴장 버튼을 직접 그린 이미지로 교체.
    btn_*.png는 실제 표시 크기의 2배(레티나 대비)로 그려져 있어서 CSS에서 절반 크기로 표시한다. */
 #btn-start {
-  width: 100px; height: 38px;
+  width: 120px; height: 58px;
   background-image: url("btn_start.png");
   background-size: contain; background-repeat: no-repeat; background-position: center;
   background-color: transparent; border: none; font-size: 0; padding: 0; cursor: pointer;
