@@ -74,7 +74,7 @@ input:focus { outline: 2px solid #ffcc4d; }
 #screen-table { display: flex; flex-direction: column; height: 100vh; background: #ffffff; }
 .topbar {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 18px; background: #1e2029; font-size: 13px; color: #aaa;
+  padding: 12px 18px; background: #1F0C0B; font-size: 13px; color: #aaa;
 }
 .room-code b { color: #ffcc4d; font-size: 16px; }
 
@@ -287,7 +287,7 @@ input:focus { outline: 2px solid #ffcc4d; }
 
 .controls {
   position: relative; z-index: 20;
-  padding: 14px 16px 22px; background: #1e2029;
+  padding: 14px 16px 22px; background: #1F0C0B;
   display: flex; justify-content: center;
 }
 .host-controls, .action-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
