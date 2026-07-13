@@ -393,7 +393,7 @@ function render(msg) {
       commEl.appendChild(d);
     }
   }
-  document.getElementById("pot-label").textContent = "Pot: " + state.pot.toLocaleString();
+  document.getElementById("pot-label").textContent = "현재 배팅금: " + state.pot.toLocaleString();
   const potStackWrap = document.getElementById("pot-chip-stack");
   potStackWrap.innerHTML = "";
   if (state.pot > 0) {
