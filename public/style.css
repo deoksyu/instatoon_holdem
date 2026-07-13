@@ -275,19 +275,12 @@ input:focus { outline: 2px solid #ffcc4d; }
 
 .poker-chip {
   position: absolute;
-  width: 24px; height: 24px; border-radius: 50%;
-  background:
-    radial-gradient(circle at 38% 32%, rgba(255,255,255,0.35), transparent 45%),
-    radial-gradient(circle at center, var(--chip-color) 0 58%, transparent 59%),
-    repeating-conic-gradient(from 0deg, var(--chip-edge) 0deg 15deg, var(--chip-color) 15deg 30deg);
-  box-shadow: 0 2px 3px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(0,0,0,0.35);
-}
-.poker-chip::after {
-  content: ""; position: absolute; inset: 26%; border-radius: 50%;
-  border: 1px dashed rgba(255,255,255,0.4);
+  width: 24px; height: 24px;
+  background-image: var(--chip-img);
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.55));
 }
 .chip-pile.small .poker-chip { width: 15px; height: 15px; }
-.chip-pile.small .poker-chip::after { inset: 22%; border-width: 1px; }
 
 .chip-stack-label {
   position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
@@ -306,11 +299,10 @@ input:focus { outline: 2px solid #ffcc4d; }
 /* 좌석 -> 팟 중앙으로 칩이 날아가는 연출 (미니 포커칩 모양) */
 .chip-throw {
   position: absolute; left: var(--from-left); top: var(--from-top);
-  width: 18px; height: 18px; border-radius: 50%;
-  background:
-    radial-gradient(circle at center, var(--throw-color, #f4c430) 0 58%, transparent 59%),
-    repeating-conic-gradient(from 0deg, var(--throw-edge, #fff6d8) 0deg 15deg, var(--throw-color, #f4c430) 15deg 30deg);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.35);
+  width: 18px; height: 18px;
+  background-image: var(--throw-img);
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
   transform: translate(-50%, -50%);
   pointer-events: none; z-index: 40;
   animation: chip-fly 0.55s cubic-bezier(0.3, 0.6, 0.3, 1) forwards;

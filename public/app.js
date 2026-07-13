@@ -92,9 +92,9 @@ function cardEl(card, opts = {}) {
 
 // ---------- 칩 그래픽 (10=파란/100=빨강/1000=초록, 50/30/20 비율로 넓게 흩뿌린 카지노 더미) ----------
 const CHIP_COLORS = {
-  blue: { value: 10, color: "#2f6fed", edge: "#dbe8ff" },
-  red: { value: 100, color: "#e0342c", edge: "#ffd9d6" },
-  green: { value: 1000, color: "#1f8a4c", edge: "#dbf5e4" },
+  blue: { value: 10, color: "#2f6fed", edge: "#dbe8ff", img: "chip_3.png" },
+  red: { value: 100, color: "#e0342c", edge: "#ffd9d6", img: "chip_1.png" },
+  green: { value: 1000, color: "#1f8a4c", edge: "#dbf5e4", img: "chip_2.png" },
 };
 const CHIP_MIX_RATIO = [["blue", 0.5], ["red", 0.3], ["green", 0.2]];
 
@@ -137,6 +137,7 @@ function chipStackEl(amount, maxAmount, opts = {}) {
       chip.className = "poker-chip";
       chip.style.setProperty("--chip-color", d.color);
       chip.style.setProperty("--chip-edge", d.edge);
+      chip.style.setProperty("--chip-img", `url(${d.img})`);
       // 인덱스 기반 결정론적 "흩뿌림" - 매 렌더마다 위치가 튀지 않으면서도 넓게 제각각으로 보이게
       const jitterX = (((i * 41 + 11) % (spread * 2 + 1)) - spread);
       const jitterY = (((i * 67 + 23) % (spread * 2 + 1)) - spread) * 0.65;
@@ -171,6 +172,7 @@ function spawnChipThrow(fromLeftPct, fromTopPct, amount) {
       const d = r < 0.5 ? CHIP_COLORS.blue : r < 0.8 ? CHIP_COLORS.red : CHIP_COLORS.green;
       el.style.setProperty("--throw-color", d.color);
       el.style.setProperty("--throw-edge", d.edge);
+      el.style.setProperty("--throw-img", `url(${d.img})`);
       const jitterX = (Math.random() - 0.5) * 6;
       const jitterY = (Math.random() - 0.5) * 6;
       el.style.setProperty("--from-left", fromLeftPct + jitterX + "%");
