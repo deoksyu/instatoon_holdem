@@ -91,9 +91,11 @@ input:focus { outline: 2px solid #ffcc4d; }
 #btn-pending-open, #btn-handranks-open, #btn-leave-open {
   width: 48px; height: 48px;
   background-size: contain; background-repeat: no-repeat; background-position: center;
-  background-color: transparent; border: none; font-size: 0; padding: 0; margin-left: 0;
+  background-color: transparent; border: none; font-size: 0; padding: 0;
   cursor: pointer; position: relative; flex-shrink: 0;
 }
+/* 정렬용 margin-left는 위쪽의 헤더 정렬 규칙(#btn-pending-open{margin-left:auto} 등)이
+   담당하므로 여기서는 건드리지 않는다 - 순서상 나중에 오는 규칙이 이겨서 정렬이 깨지는 걸 방지. */
 #btn-pending-open { background-image: url("btn_approve.png"); }
 #btn-handranks-open { background-image: url("btn_handranks.png"); }
 #btn-leave-open { background-image: url("btn_leave.png"); }
