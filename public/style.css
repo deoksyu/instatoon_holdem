@@ -464,6 +464,14 @@ input:focus { outline: 2px solid #ffcc4d; }
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
+/* 좁은 세로 화면(폰 세로모드)에서는 지금 크기 그대로 두고, 가로 폭이 넉넉한
+   화면(가로모드/태블릿/데스크톱 테스트)에서는 이미지·글꼴·버튼을 통째로 확대해서
+   보드 대비 너무 작아 보이지 않게 한다. 확대 배율만큼 높이 안전상한도 같이 줄여서
+   짧은 화면에서 위아래로 넘치지 않게 한다. */
+@media (min-width: 700px) and (min-height: 420px) {
+  .settings-modal-wrap { zoom: 1.6; }
+  .settings-modal { width: min(94vw, 480px, calc(85vh * 1.5556 / 1.6)); }
+}
 .settings-modal-content {
   position: absolute; left: 7.5%; right: 8%; top: 31%; bottom: 13%;
   overflow-y: auto; overflow-x: hidden; padding: 2px 2px;
