@@ -674,10 +674,10 @@ input:focus { outline: 2px solid #ffcc4d; }
 }
 .btn-settings-open:hover { opacity: 0.85; }
 
-.settings-section { margin-bottom: 2px; }
+.settings-section { margin-bottom: 1px; }
 .settings-section:last-child { margin-bottom: 0; }
 .settings-section-title {
-  font-size: 10px; font-weight: 800; color: #ffcc4d; margin-bottom: 1px; line-height: 1.2;
+  font-size: 10px; font-weight: 800; color: #ffcc4d; margin-bottom: 0px; line-height: 1.15;
 }
 .settings-placeholder {
   color: #7d8290; font-size: 11px; line-height: 1.3;

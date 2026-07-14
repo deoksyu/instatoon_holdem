@@ -497,25 +497,31 @@ function renderSettingsModalBody() {
   const curRa = gs.rebuyAmount ?? 0;
 
   const wrap = document.createElement("div");
-  wrap.className = "settings-section";
   wrap.innerHTML = `
-    <div class="settings-section-title">블라인드 / 리바인</div>
-    <div class="settings-form-grid">
-      <div class="settings-form-item">
-        <label for="settings-sb" title="스몰 블라인드">SB</label>
-        <input type="number" id="settings-sb" min="1" step="1" value="${pending?.smallBlind ?? curSb}">
+    <div class="settings-section">
+      <div class="settings-section-title">블라인드</div>
+      <div class="settings-form-grid">
+        <div class="settings-form-item">
+          <label for="settings-sb" title="스몰 블라인드">SB</label>
+          <input type="number" id="settings-sb" min="1" step="1" value="${pending?.smallBlind ?? curSb}">
+        </div>
+        <div class="settings-form-item">
+          <label for="settings-bb" title="빅 블라인드">BB</label>
+          <input type="number" id="settings-bb" min="1" step="1" value="${pending?.bigBlind ?? curBb}">
+        </div>
       </div>
-      <div class="settings-form-item">
-        <label for="settings-bb" title="빅 블라인드">BB</label>
-        <input type="number" id="settings-bb" min="1" step="1" value="${pending?.bigBlind ?? curBb}">
-      </div>
-      <div class="settings-form-item">
-        <label for="settings-rebuy-count" title="리바인 횟수">횟수</label>
-        <input type="number" id="settings-rebuy-count" min="0" step="1" value="${pending?.maxRebuys ?? curMr}">
-      </div>
-      <div class="settings-form-item">
-        <label for="settings-rebuy-amount" title="리바인 액수">액수</label>
-        <input type="number" id="settings-rebuy-amount" min="0" step="1" value="${pending?.rebuyAmount ?? curRa}">
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">리바인</div>
+      <div class="settings-form-grid">
+        <div class="settings-form-item">
+          <label for="settings-rebuy-count" title="리바인 횟수">횟수</label>
+          <input type="number" id="settings-rebuy-count" min="0" step="1" value="${pending?.maxRebuys ?? curMr}">
+        </div>
+        <div class="settings-form-item">
+          <label for="settings-rebuy-amount" title="리바인 액수">액수</label>
+          <input type="number" id="settings-rebuy-amount" min="0" step="1" value="${pending?.rebuyAmount ?? curRa}">
+        </div>
       </div>
     </div>
     <div id="settings-save-status" class="settings-save-status"></div>
