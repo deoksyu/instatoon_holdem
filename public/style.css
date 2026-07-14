@@ -452,9 +452,9 @@ input:focus { outline: 2px solid #ffcc4d; }
 .pending-title { font-size: 15px; color: #ffcc4d; font-weight: 800; margin-bottom: 12px; }
 
 /* 설정 모달: settin.png(1400x900) 원본 비율을 그대로 유지한 채 배경으로 사용.
-   aspect-ratio로 이미지 비율을 고정하고, 이미지 안의 여백(상단 장식 헤더 아래 ~
-   하단 붉은 트림 위)에 해당하는 위치에 내용 영역을 절대좌표로 얹는다.
-   내용이 여백보다 길어지면(방장 설정 등) 이미지를 늘리는 대신 그 영역 안에서만 스크롤한다. */
+   aspect-ratio로 이미지 비율을 고정하고, 이미지 안에 그려진 안전영역(상단 "설정" 팻말
+   장식 아래 ~ 하단 붉은 트림 위, 좌우 덩굴 장식 안쪽)에 맞춰 내용 영역을 절대좌표로 얹는다.
+   내용이 여백보다 길어지면 이미지를 늘리는 대신 그 영역 안에서만 스크롤한다. */
 .settings-modal-wrap { display: flex; flex-direction: column; align-items: center; }
 .settings-modal {
   position: relative;
@@ -464,33 +464,34 @@ input:focus { outline: 2px solid #ffcc4d; }
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
-/* 타이틀 텍스트 없이, 이미지 상단 장식 헤더 바로 아래부터 내용 영역 시작.
-   내용은 늘어나는 이미지 없이 이 안전영역 안에 맞게 구성한다(스크롤은 비상시 대비용).
-   닫기 버튼은 이미지 밖으로 빼서 안전영역을 온전히 설정 항목에 쓴다. */
 .settings-modal-content {
-  position: absolute; left: 3.2%; right: 2.9%; top: 13%; bottom: 3%;
-  overflow-y: auto; padding: 2px 4px;
+  position: absolute; left: 7.5%; right: 8%; top: 31%; bottom: 13%;
+  overflow-y: auto; overflow-x: hidden; padding: 2px 2px;
   display: flex; flex-direction: column; justify-content: flex-end;
+  min-width: 0;
 }
-.settings-modal-wrap .settings-close-btn {
-  margin: 10px 0 0; background: #3a2a20; color: #ffcc4d;
+/* 설정 저장(방장 전용) / 닫기 버튼을 같은 줄에, 같은 스타일로 나란히 배치.
+   저장 버튼은 renderSettingsModalBody()가 이 줄 앞쪽에 동적으로 끼워 넣는다. */
+.settings-actions-row { display: flex; gap: 6px; margin-top: 2px; }
+.settings-action-btn {
+  flex: 1; padding: 4px 10px; border: none; border-radius: 6px;
+  font-weight: 700; font-size: 11px; cursor: pointer;
 }
+.settings-save-btn.settings-action-btn { background: #ffcc4d; color: #1e2029; }
+.settings-save-btn.settings-action-btn:hover { background: #ffd876; }
+.settings-close-btn.settings-action-btn { background: #3a2a20; color: #ffcc4d; }
+.settings-close-btn.settings-action-btn:hover { background: #4a362a; }
 /* 블라인드/리바인 입력 4개를 2x2 그리드로 배치. 라벨을 입력창 위가 아니라 옆에 붙여서
    (한 줄짜리 셀 2x2) 세로 공간을 이미지의 좁은 안전영역 안에 맞춘다. */
 .settings-form-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin-bottom: 4px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 2px 6px; margin-bottom: 2px; min-width: 0;
 }
-.settings-form-item { display: flex; align-items: center; gap: 4px; }
-.settings-form-item label { font-size: 10px; word-break: keep-all; flex-shrink: 0; }
+.settings-form-item { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.settings-form-item label { font-size: 10px; line-height: 1.2; word-break: keep-all; flex-shrink: 0; margin: 0; display: inline; }
 .settings-form-item input[type="number"] {
-  width: 100%; min-width: 0; padding: 3px 4px; border-radius: 6px; border: 1px solid #3a3f52;
-  background: #14161c; color: #fff; font-size: 12px; text-align: right; box-sizing: border-box;
+  width: 100%; min-width: 0; margin: 0; padding: 1px 4px; border-radius: 6px; border: 1px solid #3a3f52;
+  background: #14161c; color: #fff; font-size: 11px; text-align: right; box-sizing: border-box; line-height: 1.2;
 }
-.settings-save-btn {
-  display: block; margin: 2px 0 0; padding: 5px 12px; border: none; border-radius: 6px;
-  font-weight: 700; font-size: 12px; cursor: pointer; background: #ffcc4d; color: #1e2029;
-}
-.settings-save-btn:hover { background: #ffd876; }
 .pending-list { display: flex; flex-direction: column; gap: 8px; }
 .pending-item {
   display: flex; align-items: center; gap: 10px; background: #1e2029; border-radius: 8px; padding: 8px 10px;
@@ -665,26 +666,27 @@ input:focus { outline: 2px solid #ffcc4d; }
 }
 .btn-settings-open:hover { opacity: 0.85; }
 
-.settings-section { margin-bottom: 4px; }
+.settings-section { margin-bottom: 2px; }
 .settings-section:last-child { margin-bottom: 0; }
 .settings-section-title {
-  font-size: 11px; font-weight: 800; color: #ffcc4d; margin-bottom: 3px;
+  font-size: 10px; font-weight: 800; color: #ffcc4d; margin-bottom: 1px; line-height: 1.2;
 }
 .settings-placeholder {
-  color: #7d8290; font-size: 12px; line-height: 1.6;
-  background: #1e2029; border-radius: 8px; padding: 12px;
+  color: #7d8290; font-size: 11px; line-height: 1.3;
+  background: #1e2029; border-radius: 8px; padding: 6px;
 }
 .settings-form-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  margin-bottom: 8px; font-size: 13px; color: #cdd1da;
+  margin-bottom: 2px; font-size: 12px; color: #cdd1da;
 }
-.settings-form-row label { white-space: nowrap; }
+.settings-form-row label { white-space: nowrap; line-height: 1.2; margin: 0; display: inline; }
 .settings-form-row input[type="number"] {
   width: 110px; padding: 6px 8px; border-radius: 6px; border: 1px solid #3a3f52;
   background: #14161c; color: #fff; font-size: 13px; text-align: right;
 }
+.settings-form-row input[type="checkbox"] { margin: 0; }
 .settings-save-status {
-  font-size: 11px; color: #9aa0ac; margin-top: 2px; line-height: 1.4;
+  font-size: 10px; color: #9aa0ac; margin-top: 1px; line-height: 1.2;
 }
 .settings-save-status.pending { color: #ffcc4d; font-weight: 700; }
 

@@ -519,7 +519,6 @@ function renderSettingsModalBody() {
       </div>
     </div>
     <div id="settings-save-status" class="settings-save-status"></div>
-    <button id="btn-settings-save" class="settings-save-btn">설정 저장</button>
   `;
   body.appendChild(wrap);
 
@@ -534,7 +533,19 @@ function renderSettingsModalBody() {
     statusEl.classList.remove("pending");
   }
 
-  wrap.querySelector("#btn-settings-save").addEventListener("click", () => {
+  // 저장 버튼은 닫기 버튼과 같은 줄에 나란히 놓이도록 actions-row 맨 앞에 끼워 넣는다.
+  // (모달을 다시 열 때마다 renderSettingsModalBody가 새로 호출되므로, 이전에 끼워 넣었던
+  // 저장 버튼이 남아있다면 먼저 지운다.)
+  const actionsRow = document.getElementById("settings-actions-row");
+  actionsRow?.querySelector("#btn-settings-save")?.remove();
+  const saveBtn = document.createElement("button");
+  saveBtn.id = "btn-settings-save";
+  saveBtn.type = "button";
+  saveBtn.className = "settings-action-btn settings-save-btn";
+  saveBtn.textContent = "설정 저장";
+  actionsRow?.insertBefore(saveBtn, actionsRow.firstChild);
+
+  saveBtn.addEventListener("click", () => {
     const smallBlind = parseInt(wrap.querySelector("#settings-sb").value, 10);
     const bigBlind = parseInt(wrap.querySelector("#settings-bb").value, 10);
     const maxRebuys = parseInt(wrap.querySelector("#settings-rebuy-count").value, 10);
@@ -548,8 +559,8 @@ function renderSettingsModalBody() {
         alert(res.error);
         return;
       }
-      statusEl.textContent = `저장됨 - 다음 판부터 적용됩니다 (${describe({ smallBlind, bigBlind, maxRebuys, rebuyAmount })})`;
-      statusEl.classList.add("pending");
+      // 저장에 성공하면 상태 갱신 없이 바로 설정창을 닫는다 (다음 room:state로 어차피 반영됨).
+      document.getElementById("settings-modal-overlay").classList.add("hidden");
     });
   });
 }
