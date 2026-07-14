@@ -495,7 +495,7 @@ input:focus { outline: 2px solid #ffcc4d; }
   display: grid; grid-template-columns: 1fr 1fr; gap: 2px 6px; margin-bottom: 2px; min-width: 0;
 }
 .settings-form-item { display: flex; align-items: center; gap: 4px; min-width: 0; }
-.settings-form-item label { font-size: 10px; line-height: 1.2; word-break: keep-all; flex-shrink: 0; margin: 0; display: inline; }
+.settings-form-item label { font-size: 10px; line-height: 1.2; word-break: keep-all; flex-shrink: 0; margin: 0; display: inline; color: #3D231F; }
 .settings-form-item input[type="number"] {
   width: 100%; min-width: 0; margin: 0; padding: 1px 4px; border-radius: 6px; border: 1px solid #3a3f52;
   background: #14161c; color: #fff; font-size: 11px; text-align: right; box-sizing: border-box; line-height: 1.2;
@@ -687,7 +687,7 @@ input:focus { outline: 2px solid #ffcc4d; }
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin-bottom: 2px; font-size: 12px; color: #cdd1da;
 }
-.settings-form-row label { white-space: nowrap; line-height: 1.2; margin: 0; display: inline; }
+.settings-form-row label { white-space: nowrap; line-height: 1.2; margin: 0; display: inline; color: #3D231F; }
 .settings-form-row input[type="number"] {
   width: 110px; padding: 6px 8px; border-radius: 6px; border: 1px solid #3a3f52;
   background: #14161c; color: #fff; font-size: 13px; text-align: right;
@@ -701,18 +701,18 @@ input:focus { outline: 2px solid #ffcc4d; }
 /* 설정 모달 전용 팔레트: 배경이 어두운 단색이 아니라 settin.png의 따뜻한 톤이라
    글자색/입력창 배경을 그 위에서 잘 읽히도록 다시 잡는다. */
 .settings-modal .settings-section-title { color: #5a2e1c; }
-.settings-modal .settings-form-row { color: #3a231c; }
+.settings-modal .settings-form-row { color: #3D231F; }
 .settings-modal .settings-placeholder {
-  background: rgba(255,255,255,0.35); color: #4a382f;
+  background: rgba(255,255,255,0.35); color: #3D231F;
 }
 .settings-modal .settings-form-row input[type="number"] {
   background: rgba(255,255,255,0.55); border-color: #8a6a52; color: #2a1a12;
 }
-.settings-modal .settings-form-item { color: #3a231c; }
+.settings-modal .settings-form-item { color: #3D231F; }
 .settings-modal .settings-form-item input[type="number"] {
   background: rgba(255,255,255,0.55); border-color: #8a6a52; color: #2a1a12;
 }
-.settings-modal .settings-save-status { color: #5a4032; }
+.settings-modal .settings-save-status { color: #3D231F; }
 .settings-modal .settings-save-status.pending { color: #a8330f; }
 .settings-modal #settings-showdown-reveal { width: 16px; height: 16px; }
 
