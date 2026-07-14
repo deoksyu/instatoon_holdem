@@ -470,6 +470,7 @@ input:focus { outline: 2px solid #ffcc4d; }
 .settings-modal-content {
   position: absolute; left: 3.2%; right: 2.9%; top: 13%; bottom: 3%;
   overflow-y: auto; padding: 2px 4px;
+  display: flex; flex-direction: column; justify-content: flex-end;
 }
 .settings-modal-wrap .settings-close-btn {
   margin: 10px 0 0; background: #3a2a20; color: #ffcc4d;
